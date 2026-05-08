@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ThemeProvider } from "../contexts/ThemeContext";
 import "./theme.css";
@@ -33,9 +33,16 @@ export const AppPage: React.FC = () => {
 const AppContent: React.FC = () => {
   const { ready, isLoading } = useLanguage();
   const { t } = useTranslation("app");
+  const [hasInitialized, setHasInitialized] = useState(ready);
 
-  // 如果语言包还在加载中，显示加载界面
-  if (isLoading || !ready) {
+  useEffect(() => {
+    if (ready) {
+      setHasInitialized(true);
+    }
+  }, [ready]);
+
+  // 只在首次启动且语言资源尚未就绪时阻塞渲染，避免切换语言时卸载整棵状态树
+  if (!hasInitialized && (isLoading || !ready)) {
     return (
       <div className="App">
         <div
