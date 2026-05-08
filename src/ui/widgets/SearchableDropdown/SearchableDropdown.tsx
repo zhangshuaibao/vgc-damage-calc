@@ -26,6 +26,7 @@ interface SearchableDropdownProps {
   // 新增：当下拉打开且当前无选中项时，滚动到该值对应的项目位置
   scrollTargetValue?: unknown;
   tabIndex?: number;
+  maxLength?: number;
 }
 
 const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
@@ -41,6 +42,7 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   selectedItemColor = "var(--selected-item-color)",
   scrollTargetValue,
   tabIndex,
+  maxLength,
 }) => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
@@ -226,7 +228,10 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!isTextEditable) return;
-    const newValue = e.target.value;
+    const newValue =
+      typeof maxLength === "number"
+        ? e.target.value.slice(0, maxLength)
+        : e.target.value;
     setSearchTerm(newValue);
     if (!isOpen) setIsOpen(true);
     if (dropdownMenuRef.current) {
@@ -482,6 +487,7 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
             lineHeight: `${metrics.lineHeight}px`,
           }}
           tabIndex={tabIndex}
+          maxLength={maxLength}
           value={displpayText}
           placeholder={
             (isOpen || !selectedItem) && displpayText === "" ? placeholder : ""

@@ -325,6 +325,7 @@ const PokemonInfoColumn1: React.FC<EditAreaProps> = ({ isAttacker }) => {
           isTextEditable={true}
           showDropdownButton={false}
           tabIndex={tabBase + 1}
+          maxLength={100}
         />
         {(!pokemonFormeDropdownItems ||
           pokemonFormeDropdownItems.length === 0) && (

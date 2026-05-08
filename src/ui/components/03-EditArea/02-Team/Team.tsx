@@ -9,6 +9,9 @@ import {
   FiTrash2,
   FiArrowLeft,
   FiCopy,
+  FiSave,
+  FiFolder,
+  FiX,
 } from "react-icons/fi";
 import { createPortal } from "react-dom";
 import { confirmable, ContextAwareConfirmation } from "react-confirm";
@@ -38,11 +41,18 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
     moveSlot,
     addSlot,
     removeSlot,
+    savedTeams,
+    currentSavedTeamName,
+    saveTeamToStorage,
+    loadSavedTeam,
+    deleteSavedTeam,
+    clearTeam,
     exportTeamToClipboard,
     importTeamFromClipboard,
   } = useTeamState(isAttacker);
   const { t } = useTranslation("app");
   const [toastText, setToastText] = React.useState<string | null>(null);
+  const [savedTeamsOpen, setSavedTeamsOpen] = React.useState(false);
   const [draggingIndex, setDraggingIndex] = React.useState<number | null>(null);
   const [dragOverGapIndex, setDragOverGapIndex] = React.useState<number | null>(
     null
@@ -66,6 +76,8 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
   const isTouchDragArmedRef = React.useRef<boolean>(false);
   const isTouchDraggingRef = React.useRef<boolean>(false);
   const suppressClickRef = React.useRef<boolean>(false);
+  const savedTeamsPickerRef = React.useRef<HTMLDivElement | null>(null);
+  const isConfirmingSavedTeamDeleteRef = React.useRef<boolean>(false);
   const tabBase = isAttacker ? 340000 : 350000;
 
   const confirm = ContextAwareConfirmation.createConfirmation(
@@ -81,6 +93,116 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
     const ok = await importTeamFromClipboard();
     if (ok) setToastText(t("team.importTeamSuccess"));
   }, [importTeamFromClipboard, t]);
+
+  const handleSaveTeam = React.useCallback(async () => {
+    const name = window.prompt(
+      t("team.saveNamePrompt"),
+      currentSavedTeamName || "",
+    );
+    if (name === null) {
+      return;
+    }
+    const ok = await saveTeamToStorage(name);
+    if (ok) {
+      setToastText(t("team.saveTeamSuccess"));
+    }
+  }, [currentSavedTeamName, saveTeamToStorage, t]);
+
+  const handleLoadSavedTeam = React.useCallback(
+    async (teamId: string) => {
+      const ok = await loadSavedTeam(teamId);
+      if (ok) {
+        setSavedTeamsOpen(false);
+        setToastText(t("team.loadTeamSuccess"));
+      }
+    },
+    [loadSavedTeam, t],
+  );
+
+  const handleDeleteSavedTeam = React.useCallback(
+    async (event: React.MouseEvent, teamId: string) => {
+      event.stopPropagation();
+      const nextSavedTeamCount = savedTeams.filter(
+        (team) => team.id !== teamId,
+      ).length;
+      isConfirmingSavedTeamDeleteRef.current = true;
+      const ok = await confirm<boolean>({
+        messageKey: "team.confirmDeleteSavedTeam",
+        buttons: [
+          {
+            labelKey: "team.confirmDelete.ok",
+            value: true,
+            tone: "danger",
+          },
+          {
+            labelKey: "team.confirmDelete.cancel",
+            value: false,
+            tone: "default",
+          },
+        ],
+      });
+      isConfirmingSavedTeamDeleteRef.current = false;
+      if (!ok) {
+        return;
+      }
+      const deleted = await deleteSavedTeam(teamId);
+      if (deleted) {
+        if (nextSavedTeamCount === 0) {
+          setSavedTeamsOpen(false);
+        }
+        setToastText(t("team.deleteSavedTeamSuccess"));
+      }
+    },
+    [confirm, deleteSavedTeam, savedTeams, t],
+  );
+
+  React.useEffect(() => {
+    if (!savedTeamsOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (isConfirmingSavedTeamDeleteRef.current) {
+        return;
+      }
+      if (
+        savedTeamsPickerRef.current &&
+        !savedTeamsPickerRef.current.contains(event.target as Node)
+      ) {
+        setSavedTeamsOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [savedTeamsOpen]);
+
+  const handleClearTeam = React.useCallback(async () => {
+    const ok = await confirm<boolean>({
+      messageKey: "team.confirmClearTeam",
+      buttons: [
+        {
+          labelKey: "team.confirmClearTeam.ok",
+          value: true,
+          tone: "danger",
+        },
+        {
+          labelKey: "team.confirmDelete.cancel",
+          value: false,
+          tone: "default",
+        },
+      ],
+    });
+    if (!ok) {
+      return;
+    }
+    const cleared = await clearTeam();
+    if (cleared) {
+      setToastText(t("team.clearTeamSuccess"));
+    }
+  }, [clearTeam, confirm, t]);
 
   const handleDragStart = React.useCallback((index: number) => {
     setDraggingIndex(index);
@@ -175,6 +297,35 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
     },
     [draggingIndex, moveSlot]
   );
+
+  React.useEffect(() => {
+    if (draggingIndex === null) {
+      return;
+    }
+
+    const handleDocumentDragOver = (event: DragEvent) => {
+      event.preventDefault();
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = "move";
+      }
+      const nextGapIndex = getGapIndexFromClientX(event.clientX);
+      setDragOverGapIndex((prev) =>
+        prev === nextGapIndex ? prev : nextGapIndex
+      );
+    };
+
+    const handleDocumentDrop = (event: DragEvent) => {
+      event.preventDefault();
+      handleDropAtGap(getGapIndexFromClientX(event.clientX));
+    };
+
+    document.addEventListener("dragover", handleDocumentDragOver);
+    document.addEventListener("drop", handleDocumentDrop);
+    return () => {
+      document.removeEventListener("dragover", handleDocumentDragOver);
+      document.removeEventListener("drop", handleDocumentDrop);
+    };
+  }, [draggingIndex, getGapIndexFromClientX, handleDropAtGap]);
 
   const finishTouchDrag = React.useCallback(
     (touchIdentifier: number, clientX?: number) => {
@@ -451,6 +602,7 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
         }}
         onDrop={(event) => {
           event.preventDefault();
+          event.stopPropagation();
           handleDropAtGap(gapIndex);
         }}
       />
@@ -472,6 +624,7 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
               const slotKey = slot?.id ?? `empty-${index}`;
               const img = slot?.imgURL || "";
               const itemImg = slot?.itemImgURL || "";
+              const teraTypeImg = slot?.teraTypeImgURL || "";
               const isEmpty = !slot || (!slot.pasteText && !slot.imgURL);
               const selected = selectedIndex === index;
               const isDragging = draggingIndex === index;
@@ -543,6 +696,7 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
                       }}
                       onDrop={(event) => {
                         event.preventDefault();
+                        event.stopPropagation();
                         const rect = event.currentTarget.getBoundingClientRect();
                         const nextGapIndex =
                           event.clientX - rect.left < rect.width / 2
@@ -658,6 +812,15 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
                             draggable={false}
                           />
                         )}
+                        {teraTypeImg && (
+                          <SmartImage
+                            className="team-slot__tera"
+                            src={teraTypeImg}
+                            alt=""
+                            loading="lazy"
+                            draggable={false}
+                          />
+                        )}
                       </div>
                     </button>
                     {!isEmpty && (
@@ -698,9 +861,19 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
               title={t("team.importTeam")}
               aria-label={t("team.importTeam")}
               onClick={handleImportTeam}
-              tabIndex={tabBase + 22}
+              tabIndex={tabBase + 21}
             >
               <FiArrowLeft />
+            </button>
+            <button
+              type="button"
+              className="team-action-button team-save"
+              title={t("team.saveTeam")}
+              aria-label={t("team.saveTeam")}
+              onClick={handleSaveTeam}
+              tabIndex={tabBase + 23}
+            >
+              <FiSave />
             </button>
             <button
               type="button"
@@ -708,9 +881,107 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
               title={t("team.copyTeam")}
               aria-label={t("team.copyTeam")}
               onClick={handleCopyTeam}
-              tabIndex={tabBase + 21}
+              tabIndex={tabBase + 22}
             >
               <FiCopy />
+            </button>
+            <div className="team-saved-picker" ref={savedTeamsPickerRef}>
+              <button
+                type="button"
+                className="team-action-button team-load"
+                title={t("team.loadTeam")}
+                aria-label={t("team.loadTeam")}
+                onClick={() => setSavedTeamsOpen((open) => !open)}
+                tabIndex={tabBase + 24}
+              >
+                <FiFolder />
+              </button>
+              {savedTeamsOpen && (
+                <div className="team-saved-menu">
+                  {savedTeams.length > 0 ? (
+                    savedTeams.map((team) => (
+                      <div
+                        key={team.id}
+                        role="button"
+                        tabIndex={0}
+                        className="team-saved-item"
+                        onClick={() => {
+                          void handleLoadSavedTeam(team.id);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            void handleLoadSavedTeam(team.id);
+                          }
+                        }}
+                      >
+                        <span className="team-saved-item__name">
+                          {team.name}
+                        </span>
+                        <span className="team-saved-item__pokemons">
+                          {team.pokemons.map((pokemon) => (
+                            <span
+                              key={pokemon.id}
+                              className="team-saved-preview"
+                            >
+                              {pokemon.imgURL && (
+                                <SmartImage
+                                  className="team-saved-preview__pokemon"
+                                  src={pokemon.imgURL}
+                                  alt=""
+                                  loading="lazy"
+                                />
+                              )}
+                              {pokemon.itemImgURL && (
+                                <SmartImage
+                                  className="team-saved-preview__item"
+                                  src={pokemon.itemImgURL}
+                                  alt=""
+                                  loading="lazy"
+                                />
+                              )}
+                              {pokemon.teraTypeImgURL && (
+                                <SmartImage
+                                  className="team-saved-preview__tera"
+                                  src={pokemon.teraTypeImgURL}
+                                  alt=""
+                                  loading="lazy"
+                                />
+                              )}
+                            </span>
+                          ))}
+                        </span>
+                        <span
+                          role="button"
+                          tabIndex={-1}
+                          className="team-saved-item__delete"
+                          title={t("team.deleteSavedTeam")}
+                          aria-label={t("team.deleteSavedTeam")}
+                          onClick={(event) => {
+                            void handleDeleteSavedTeam(event, team.id);
+                          }}
+                        >
+                          <FiX />
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="team-saved-empty">
+                      {t("team.noSavedTeams")}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              className="team-action-button team-clear"
+              title={t("team.clearTeam")}
+              aria-label={t("team.clearTeam")}
+              onClick={handleClearTeam}
+              tabIndex={tabBase + 25}
+            >
+              <FiTrash2 />
             </button>
           </div>
         </div>

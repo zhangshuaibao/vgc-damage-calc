@@ -22,36 +22,106 @@ interface TeamSlot {
   pasteText: string | undefined;
   imgURL: string | undefined;
   itemImgURL: string | undefined;
+  teraTypeImgURL: string | undefined;
+}
+
+export interface SavedTeamPreviewPokemon {
+  id: string;
+  imgURL: string | undefined;
+  itemImgURL: string | undefined;
+  teraTypeImgURL: string | undefined;
+}
+
+export interface SavedTeam {
+  id: string;
+  name: string;
+  pasteTexts: string[];
+  pokemons: SavedTeamPreviewPokemon[];
+  createdAt: number;
 }
 
 interface TeamState {
   slots: (TeamSlot | undefined)[];
   selectedIndex: number;
+  savedTeams: SavedTeam[];
+  currentSavedTeamName: string | undefined;
   selectSlot: (index: number) => void;
   moveSlot: (fromIndex: number, toIndex: number) => void;
   addSlot: () => void;
   removeSlot: (index: number) => void;
+  saveTeamToStorage: (name: string) => Promise<boolean>;
+  loadSavedTeam: (teamId: string) => Promise<boolean>;
+  deleteSavedTeam: (teamId: string) => Promise<boolean>;
+  clearTeam: () => Promise<boolean>;
   exportTeamToClipboard: () => Promise<boolean>;
   importTeamFromClipboard: () => Promise<boolean>;
 }
 
 const AttackerTeamContext = createContext<TeamState | undefined>(undefined);
 const DefenderTeamContext = createContext<TeamState | undefined>(undefined);
+const SAVED_TEAM_STORAGE_VERSION = 1;
+const SAVED_TEAM_STORAGE_KEY = `vg-calc.savedTeams.v${SAVED_TEAM_STORAGE_VERSION}`;
+const SAVED_TEAMS_CHANGED_EVENT = "vgCalcSavedTeamsChanged";
+const MAX_SAVED_TEAMS = 10;
+const MAX_SAVED_TEAM_NAME_LENGTH = 100;
+
+const getDeprecatedSavedTeamStorageKey = (side: "attacker" | "defender"): string =>
+  `vg-calc.savedTeams.v${SAVED_TEAM_STORAGE_VERSION}.${side}`;
+
+const normalizeSavedTeams = (parsed: unknown): SavedTeam[] => {
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+  return parsed
+    .filter((team): team is SavedTeam => {
+      return (
+        typeof team === "object" &&
+        team !== null &&
+        typeof (team as SavedTeam).id === "string" &&
+        typeof (team as SavedTeam).name === "string" &&
+        Array.isArray((team as SavedTeam).pasteTexts)
+      );
+    })
+    .map((team) => ({
+      ...team,
+      pokemons: Array.isArray(team.pokemons) ? team.pokemons : [],
+      createdAt:
+        typeof team.createdAt === "number" ? team.createdAt : Date.now(),
+    }));
+};
+
+const readSavedTeamsByKey = (storageKey: string): SavedTeam[] => {
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) {
+      return [];
+    }
+    return normalizeSavedTeams(JSON.parse(raw) as unknown);
+  } catch {
+    return [];
+  }
+};
 
 const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
   const {
     displayPokemon,
     importPokemonFromPasteText,
     item,
+    teraType,
     pokemonSpecies,
     setPokemonName,
     setDisableAutoSelect,
+    clearPokemonState,
   } = usePokemonState(side === "attacker");
   const { currentGen, currentGame } = useFormats();
   const isChampionsGame = currentGame === "Champions";
 
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [slots, setSlots] = useState<(TeamSlot | undefined)[]>([undefined]);
+  const [savedTeams, setSavedTeams] = useState<SavedTeam[]>([]);
+  const [currentSavedTeam, setCurrentSavedTeam] = useState<
+    Pick<SavedTeam, "id" | "name"> | undefined
+  >(undefined);
 
   const opQueueRef = useRef<Promise<void>>(Promise.resolve());
   const slotIdRef = useRef<number>(0);
@@ -61,6 +131,54 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
   const selectedIndexRef = useRef<number>(selectedIndex);
   const selectedSlotPasteTextRef = useRef<string | undefined>(
     slots[selectedIndex]?.pasteText,
+  );
+
+  const readSavedTeamsFromStorage = useCallback((): SavedTeam[] => {
+    try {
+      const globalRaw = window.localStorage.getItem(SAVED_TEAM_STORAGE_KEY);
+      if (globalRaw !== null) {
+        return normalizeSavedTeams(JSON.parse(globalRaw) as unknown)
+          .slice(0, MAX_SAVED_TEAMS)
+          .sort((a, b) => b.createdAt - a.createdAt);
+      }
+    } catch {
+      return [];
+    }
+
+    const merged = [
+      ...readSavedTeamsByKey(getDeprecatedSavedTeamStorageKey("attacker")),
+      ...readSavedTeamsByKey(getDeprecatedSavedTeamStorageKey("defender")),
+    ];
+    const seen = new Set<string>();
+    const uniqueTeams: SavedTeam[] = [];
+    for (const team of merged) {
+      const key = team.id || team.name;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      uniqueTeams.push(team);
+    }
+    return uniqueTeams
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, MAX_SAVED_TEAMS);
+  }, []);
+
+  const writeSavedTeamsToStorage = useCallback(
+    (nextTeams: SavedTeam[]): boolean => {
+      try {
+        window.localStorage.setItem(
+          SAVED_TEAM_STORAGE_KEY,
+          JSON.stringify(nextTeams),
+        );
+        setSavedTeams(nextTeams);
+        window.dispatchEvent(new Event(SAVED_TEAMS_CHANGED_EVENT));
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [],
   );
 
   async function runExclusive<T>(fn: () => Promise<T> | T): Promise<T> {
@@ -105,11 +223,13 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
         pokemon?.item && pokemon.item !== ShowdownDataService.NoItem.name
           ? pokemon.item
           : undefined;
+      const teraTypeName = pokemon?.settingTeraType || pokemon?.teraType;
       return {
         id: existingId ?? createSlotId(),
         pasteText,
         imgURL: ShowdownDataService.getPokemonImgUrl(pokemonName),
         itemImgURL: ShowdownDataService.getItemImgUrl(itemName),
+        teraTypeImgURL: ShowdownDataService.getTeraTypeImgUrl(teraTypeName),
       };
     } catch {
       return {
@@ -117,6 +237,7 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
         pasteText,
         imgURL: undefined,
         itemImgURL: undefined,
+        teraTypeImgURL: undefined,
       };
     }
   };
@@ -138,6 +259,7 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
       pasteText,
       imgURL: ShowdownDataService.getPokemonImgUrl(pokemonName),
       itemImgURL: ShowdownDataService.getItemImgUrl(itemName),
+      teraTypeImgURL: ShowdownDataService.getTeraTypeImgUrl(teraType),
     };
   };
 
@@ -160,7 +282,8 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
         currentSlot?.id === normalizedSlot?.id &&
         currentSlot?.pasteText === normalizedSlot?.pasteText &&
         currentSlot?.imgURL === normalizedSlot?.imgURL &&
-        currentSlot?.itemImgURL === normalizedSlot?.itemImgURL
+        currentSlot?.itemImgURL === normalizedSlot?.itemImgURL &&
+        currentSlot?.teraTypeImgURL === normalizedSlot?.teraTypeImgURL
       ) {
         return prev;
       }
@@ -214,6 +337,25 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
   useEffect(() => {
     selectedIndexRef.current = selectedIndex;
   }, [selectedIndex]);
+
+  useEffect(() => {
+    setSavedTeams(readSavedTeamsFromStorage());
+  }, [readSavedTeamsFromStorage]);
+
+  useEffect(() => {
+    const handleSavedTeamsChanged = () => {
+      setSavedTeams(readSavedTeamsFromStorage());
+    };
+    window.addEventListener(SAVED_TEAMS_CHANGED_EVENT, handleSavedTeamsChanged);
+    window.addEventListener("storage", handleSavedTeamsChanged);
+    return () => {
+      window.removeEventListener(
+        SAVED_TEAMS_CHANGED_EVENT,
+        handleSavedTeamsChanged,
+      );
+      window.removeEventListener("storage", handleSavedTeamsChanged);
+    };
+  }, [readSavedTeamsFromStorage]);
 
   useEffect(() => {
     selectedSlotPasteTextRef.current = slots[selectedIndex]?.pasteText;
@@ -281,12 +423,13 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
             pasteText: savedText,
             imgURL: ShowdownDataService.getPokemonImgUrl(pokemonName),
             itemImgURL: ShowdownDataService.getItemImgUrl(itemName),
+            teraTypeImgURL: ShowdownDataService.getTeraTypeImgUrl(teraType),
           };
     if (!nextSlot && savedText) {
       return;
     }
     setSlotAtIndex(currentIndex, nextSlot);
-  }, [createSlotId, item, pokemonSpecies, setSlotAtIndex, slots]);
+  }, [createSlotId, item, pokemonSpecies, setSlotAtIndex, slots, teraType]);
 
   const selectSlot = (index: number) => {
     if (selectedIndex === index) return;
@@ -403,6 +546,12 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
         if (prev.length <= 1) {
           next = [...prev];
           next[0] = undefined;
+          if (index === selectedIndexRef.current) {
+            lastImportedPasteTextRef.current = undefined;
+            setPokemonName(undefined);
+            clearPokemonState();
+            setCurrentSavedTeam(undefined);
+          }
         } else {
           next = [...prev];
           next.splice(index, 1);
@@ -414,6 +563,133 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
         setSelectedIndex(targetIndex);
         return next;
       });
+    });
+  };
+
+  const getCurrentTeamSnapshot = (): (TeamSlot | undefined)[] => {
+    const snapshot = [...slots];
+    const currentText = displayPokemon?.exportToPasteText({
+      useChampionsEVs: isChampionsGame,
+    });
+    if (currentText?.trim()) {
+      snapshot[selectedIndex] = buildSlotFromCurrentState(
+        currentText,
+        snapshot[selectedIndex]?.id,
+      );
+    }
+    return snapshot;
+  };
+
+  const saveTeamToStorage = async (name: string): Promise<boolean> => {
+    const normalizedName = name.trim().slice(0, MAX_SAVED_TEAM_NAME_LENGTH);
+    if (!normalizedName) {
+      return false;
+    }
+
+    return await runExclusive(async () => {
+      const snapshot = getCurrentTeamSnapshot();
+      const filledSlots = snapshot.filter(
+        (slot): slot is TeamSlot => !!slot?.pasteText?.trim(),
+      );
+      if (filledSlots.length === 0) {
+        return false;
+      }
+
+      const now = Date.now();
+      const existingTeams = readSavedTeamsFromStorage();
+      const existingTeamByName = existingTeams.find(
+        (team) => team.name === normalizedName,
+      );
+      const nextTeamId = existingTeamByName?.id ?? `${side}-saved-team-${now}`;
+      const nextTeam: SavedTeam = {
+        id: nextTeamId,
+        name: normalizedName,
+        pasteTexts: filledSlots.map((slot) => slot.pasteText!),
+        pokemons: filledSlots.map((slot, index) => ({
+          id: `${nextTeamId}-pokemon-${index}`,
+          imgURL: slot.imgURL,
+          itemImgURL: slot.itemImgURL,
+          teraTypeImgURL: slot.teraTypeImgURL,
+        })),
+        createdAt: existingTeamByName?.createdAt ?? now,
+      };
+
+      const nextTeams = [
+        nextTeam,
+        ...existingTeams.filter((team) => team.name !== normalizedName),
+      ].slice(0, MAX_SAVED_TEAMS);
+      const ok = writeSavedTeamsToStorage(nextTeams);
+      if (ok) {
+        setCurrentSavedTeam({ id: nextTeam.id, name: nextTeam.name });
+      }
+      return ok;
+    });
+  };
+
+  const loadSavedTeam = async (teamId: string): Promise<boolean> => {
+    const team = readSavedTeamsFromStorage().find((item) => item.id === teamId);
+    if (!team || team.pasteTexts.length === 0) {
+      return false;
+    }
+
+    const prevSaved = slots[selectedIndex]?.pasteText;
+    const currentText = displayPokemon?.exportToPasteText({
+      useChampionsEVs: isChampionsGame,
+    });
+    if (currentText && currentText !== prevSaved) {
+      const shouldDiscard = await confirm<boolean>({
+        messageKey: "pokemon.confirmImportDiscard.message",
+        buttons: [
+          {
+            labelKey: "pokemon.confirmImportDiscard.discard",
+            value: true,
+            tone: "danger",
+          },
+          {
+            labelKey: "pokemon.confirmImportDiscard.cancel",
+            value: false,
+            tone: "default",
+          },
+        ],
+      });
+      if (!shouldDiscard) {
+        return false;
+      }
+    }
+
+    return await runExclusive(async () => {
+      const nextSlots = team.pasteTexts
+        .slice(0, 6)
+        .map((pasteText) => buildSlotFromPasteText(pasteText));
+      setSelectedIndex(0);
+      setSlots(nextSlots.length > 0 ? nextSlots : [undefined]);
+      setCurrentSavedTeam({ id: team.id, name: team.name });
+      return true;
+    });
+  };
+
+  const deleteSavedTeam = async (teamId: string): Promise<boolean> => {
+    const existingTeams = readSavedTeamsFromStorage();
+    const nextTeams = existingTeams.filter((team) => team.id !== teamId);
+    if (nextTeams.length === existingTeams.length) {
+      return false;
+    }
+    const ok = writeSavedTeamsToStorage(nextTeams);
+    if (ok && currentSavedTeam?.id === teamId) {
+      setCurrentSavedTeam(undefined);
+    }
+    return ok;
+  };
+
+  const clearTeam = async (): Promise<boolean> => {
+    return await runExclusive(async () => {
+      lastImportedPasteTextRef.current = undefined;
+      setSelectedIndex(0);
+      setSlots([undefined]);
+      setPokemonName(undefined);
+      clearPokemonState();
+      setCurrentSavedTeam(undefined);
+      return true;
     });
   };
 
@@ -531,10 +807,16 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
   return {
     slots,
     selectedIndex,
+    savedTeams,
+    currentSavedTeamName: currentSavedTeam?.name,
     selectSlot,
     moveSlot,
     addSlot,
     removeSlot,
+    saveTeamToStorage,
+    loadSavedTeam,
+    deleteSavedTeam,
+    clearTeam,
     exportTeamToClipboard,
     importTeamFromClipboard,
   };
