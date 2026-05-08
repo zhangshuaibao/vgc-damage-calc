@@ -9,6 +9,53 @@ import i18n, { Language } from "../i18n/i18n";
 import { translationService } from "../services/translation.service";
 import { Pokemon } from "./pokemon.calculator.model";
 
+const championsActualEvToDisplayEv = (actualEv: number): number => {
+  const normalized = Math.max(0, Math.floor(actualEv));
+  if (normalized === 0) {
+    return 0;
+  }
+  if (normalized <= 4) {
+    return 1;
+  }
+  return Math.floor((normalized + 4) / 8);
+};
+
+const formatChampionsEvText = (evText?: string): string | undefined => {
+  if (!evText || !ShowdownDataService.isChampionsGame()) {
+    return evText;
+  }
+
+  const match = evText.match(/^(\d+)([+-]?)(\s+.*)$/);
+  if (!match) {
+    return evText;
+  }
+
+  const evValue = Number.parseInt(match[1], 10);
+  if (Number.isNaN(evValue)) {
+    return evText;
+  }
+
+  return `${championsActualEvToDisplayEv(evValue)}${match[2]}${match[3]}`;
+};
+
+const formatChampionsEvDescText = (
+  descText: string,
+  evTexts: Array<string | undefined>,
+): string => {
+  if (!ShowdownDataService.isChampionsGame()) {
+    return descText;
+  }
+
+  let nextText = descText;
+  for (const evText of evTexts) {
+    const formattedEvText = formatChampionsEvText(evText);
+    if (evText && formattedEvText && evText !== formattedEvText) {
+      nextText = nextText.replace(evText, formattedEvText);
+    }
+  }
+  return nextText;
+};
+
 export class Result extends CalculatorResult {
   _overrideAttackerPokemonName: string | undefined = undefined;
   _overrideDefenderPokemonName: string | undefined = undefined;
@@ -26,20 +73,34 @@ export class Result extends CalculatorResult {
     if (this.damage === 0) {
       return "";
     }
-    const damageText = (this.moveDesc() || "")
-      .replace("recoil damage", t("damageResult.recoildamage"))
-      .replace("crash damage", t("damageResult.crashdamage"))
-      .replace("struggle damage", t("damageResult.struggledamage"))
-      .replace("recovered", t("damageResult.recovered"));
-    return damageText;
+    try {
+      const damageText = (this.moveDesc() || "")
+        .replace("recoil damage", t("damageResult.recoildamage"))
+        .replace("crash damage", t("damageResult.crashdamage"))
+        .replace("struggle damage", t("damageResult.struggledamage"))
+        .replace("recovered", t("damageResult.recovered"));
+      return damageText;
+    } catch (error) {
+      // logResultDescError("moveDesc", error, this.rawDesc);
+      return "";
+    }
   }
 
   public getFullDescText(): string {
     const lang = i18n.language as unknown as Language;
-    if (lang === "en") {
-      return this.fullDesc();
-    }
     const rawDesc = this.rawDesc;
+    if (lang === "en") {
+      try {
+        return formatChampionsEvDescText(this.fullDesc(), [
+          rawDesc.attackEVs,
+          rawDesc.HPEVs,
+          rawDesc.defenseEVs,
+        ]);
+      } catch (error) {
+        // logResultDescError("fullDesc", error, rawDesc);
+        return "";
+      }
+    }
     const damageStrings1: string[] = [];
     if (rawDesc.attackBoost != null && rawDesc.attackBoost !== 0) {
       damageStrings1.push(
@@ -49,7 +110,7 @@ export class Result extends CalculatorResult {
       );
     }
     if (rawDesc.attackEVs != null) {
-      damageStrings1.push(rawDesc.attackEVs!);
+      damageStrings1.push(formatChampionsEvText(rawDesc.attackEVs!)!);
     }
     if (rawDesc.attackerItem != null) {
       const translated = translationService.translateItemSync(
@@ -132,10 +193,10 @@ export class Result extends CalculatorResult {
     }
     const tmpList: string[] = [];
     if (rawDesc.HPEVs != null) {
-      tmpList.push(rawDesc.HPEVs!);
+      tmpList.push(formatChampionsEvText(rawDesc.HPEVs!)!);
     }
     if (rawDesc.defenseEVs != null) {
-      tmpList.push(rawDesc.defenseEVs!);
+      tmpList.push(formatChampionsEvText(rawDesc.defenseEVs!)!);
     }
     if (tmpList.length > 0) {
       damageStrings1.push(tmpList.join(" / "));

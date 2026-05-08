@@ -71,6 +71,10 @@ export class ShowdownDataService {
     ShowdownDataService.initializeRawDataCaches();
   }
 
+  static isChampionsGame(): boolean {
+    return ShowdownDataService.currentGame === "Champions";
+  }
+
   private static getCurrentGen(): number {
     return ShowdownDataService.currentGen ?? AppConstants.Gen;
   }
