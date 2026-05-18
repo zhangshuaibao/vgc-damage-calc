@@ -21,6 +21,25 @@
     "theme": "テーマ",
     "reportBug": "不具合報告",
     "githubRepo": "GitHubリポジトリ",
+    "buyMeCoffee": "コーヒーをごちそうする",
+    "coffeeSupportTitle": "開発者を支援",
+    "coffeeSupportHint": "ご支援は、データ保守、対戦環境の更新、サーバー費用に充てられます。",
+    "coffeePayPalHint": "PayPal で支援",
+    "coffeeScanHint": "QR コードで支援",
+    "alipay": "Alipay",
+    "wechatPay": "WeChat",
+    "paypal": "PayPal",
+    "header": {
+        "title": "VGC Stats",
+        "appName": "VGC Stats",
+        "appIconAlt": "VGC Stats",
+        "downloadApk": "APK をダウンロード",
+        "googlePlay": "Google Play",
+        "appStore": "App Store"
+    },
+    "footer": {
+        "editHint": "わざの威力や種族値の数値は、ダブルクリックで直接編集できます。"
+    },
     "formatGame": {
         "SV": "スカーレット・バイオレット",
         "Champions": "チャンピオンズ"

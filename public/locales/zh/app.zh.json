@@ -21,6 +21,25 @@
   "theme": "主题",
   "reportBug": "报告问题",
   "githubRepo": "GitHub仓库",
+  "buyMeCoffee": "请我喝咖啡",
+  "coffeeSupportTitle": "支持开发者",
+  "coffeeSupportHint": "你的支持将用于数据维护、对战环境更新与服务器费用。",
+  "coffeePayPalHint": "使用PayPal支付",
+  "coffeeScanHint": "扫码赞赏",
+  "alipay": "支付宝",
+  "wechatPay": "微信",
+  "paypal": "PayPal",
+  "header": {
+    "title": "VGC对战分析工具(中文）",
+    "appName": "VGC对战分析工具",
+    "appIconAlt": "VGC对战分析工具",
+    "downloadApk": "下载 APK",
+    "googlePlay": "Google Play",
+    "appStore": "App Store"
+  },
+  "footer": {
+    "editHint": "双击招式威力或种族值中的数字，可直接修改对应数值。"
+  },
   "formatGame": {
     "SV": "朱／紫",
     "Champions": "冠军"

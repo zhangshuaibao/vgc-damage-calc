@@ -6,7 +6,7 @@ import "./app.css";
 import { LanguageProvider, useLanguage } from "../contexts/LanguageContext";
 import { ContextAwareConfirmation } from "react-confirm";
 import { FormatsProvider } from "../contexts/FormatsContext";
-import Settings from "./components/Settings";
+import HeaderArea from "./components/00-HeaderArea/HeaderArea";
 import FormatsWidget from "./components/01-FormatsArea/FormatsWidget";
 import { GlobalEffectsProvider } from "../contexts/GlobalEffectsContext";
 import { PokemonUsageProvider } from "../contexts/PokemonUsageContext";
@@ -65,12 +65,7 @@ const AppContent: React.FC = () => {
       <FormatsProvider>
         <PokemonUsageProvider>
             <div className="App">
-              <header className="App-header">
-                <div className="header-content">
-                  <h1>{t("appTitle")}</h1>
-                  <Settings />
-                </div>
-              </header>
+              <HeaderArea />
               <main className="App-main">
                 <div className="app-content">
                   <div className="formats-section">
@@ -117,6 +112,9 @@ const AppContent: React.FC = () => {
                   </div>
                 </div>
               </main>
+              <footer className="App-footer">
+                <span>{t("footer.editHint")}</span>
+              </footer>
             </div>
         </PokemonUsageProvider>
       </FormatsProvider>

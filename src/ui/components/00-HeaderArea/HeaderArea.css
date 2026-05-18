@@ -1,0 +1,177 @@
+.hda-header {
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 20px;
+  color: var(--text-primary);
+  margin: 0 20px;
+  padding: 12px 24px;
+  box-shadow: 0 1px 3px var(--shadow-light);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.hda-title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 24px;
+  color: var(--text-primary);
+}
+
+.hda-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 32px;
+}
+
+.hda-actions {
+  display: flex;
+  align-items: center;
+  gap: 80px;
+  margin-left: auto;
+}
+
+.hda-download-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px 6px 8px;
+  border: none;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  box-shadow: 0 1px 3px var(--shadow-light);
+}
+
+.hda-download-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hda-download-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  display: block;
+  flex-shrink: 0;
+}
+
+.hda-download-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.hda-download-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  position: relative;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--text-primary) 14%, transparent);
+  background: transparent;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--bg-primary) 45%, transparent),
+    0 1px 2px var(--shadow-light);
+  color: var(--text-primary);
+  opacity: 0.82;
+  text-decoration: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.hda-download-link svg {
+  width: 15px;
+  height: 15px;
+}
+
+.hda-download-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 50%;
+  transform: translateX(50%) translateY(-4px);
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease,
+    visibility 0.15s ease;
+  z-index: 1100;
+}
+
+.hda-download-tooltip::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  right: 50%;
+  transform: translateX(50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent var(--border-color) transparent;
+}
+
+.hda-download-tooltip::after {
+  content: "";
+  position: absolute;
+  bottom: calc(100% - 1px);
+  right: 50%;
+  transform: translateX(50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent var(--bg-primary) transparent;
+}
+
+.hda-download-link:hover {
+  color: var(--text-accent);
+  border-color: color-mix(in srgb, var(--accent-primary) 42%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 18%, transparent),
+    0 2px 6px var(--shadow-light);
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.hda-download-link:hover .hda-download-tooltip,
+.hda-download-link:focus-visible .hda-download-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(50%) translateY(0);
+}
+
+.hda-download-link:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  color: var(--text-accent);
+  border-color: color-mix(in srgb, var(--accent-primary) 42%, transparent);
+  opacity: 1;
+}
+
+[data-theme="dark"] .hda-download-link {
+  border-color: color-mix(in srgb, var(--text-primary) 18%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--bg-secondary) 70%, transparent),
+    0 1px 2px rgba(0, 0, 0, 0.25);
+}

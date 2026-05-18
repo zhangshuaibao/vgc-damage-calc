@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VGC Calc App Prototype - iOS 26</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --ink: #111827;
+      --muted: #667085;
+      --line: rgba(17, 24, 39, .10);
+      --glass: rgba(255, 255, 255, .68);
+      --glass-strong: rgba(255, 255, 255, .86);
+      --blue: #0a84ff;
+      --green: #30d158;
+      --orange: #ff9f0a;
+      --red: #ff453a;
+      --purple: #bf5af2;
+      --cyan: #64d2ff;
+      --shadow: 0 18px 48px rgba(15, 23, 42, .14);
+      --radius: 28px;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 10%, rgba(100, 210, 255, .24), transparent 24%),
+        radial-gradient(circle at 82% 4%, rgba(48, 209, 88, .18), transparent 22%),
+        linear-gradient(135deg, #f7fbff 0%, #eef3f8 45%, #f8fafc 100%);
+      min-height: 100vh;
+    }
+
+    .stage {
+      width: min(1680px, 100%);
+      margin: 0 auto;
+      padding: 40px 32px 64px;
+    }
+
+    .cover {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 32px;
+      align-items: end;
+      min-height: 460px;
+      padding: 56px;
+      border-radius: 36px;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.82), rgba(255,255,255,.48)),
+        url("data:image/svg+xml,%3Csvg width='1200' height='760' viewBox='0 0 1200 760' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M145 487c106-136 191-222 314-191 79 20 110 94 210 75 112-21 128-126 252-141 91-11 173 31 233 94v436H0V621c45-45 92-85 145-134Z' fill='%23d8ecff'/%3E%3Cpath d='M0 664c111-91 218-107 317-52 103 58 181 29 281-26 135-75 246-62 371 28 69 50 146 71 231 56v90H0v-96Z' fill='%23dff8eb'/%3E%3Ccircle cx='889' cy='151' r='86' fill='%23ffdca8'/%3E%3C/svg%3E");
+      background-size: cover;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .cover h1 {
+      margin: 0 0 18px;
+      font-size: clamp(44px, 6vw, 92px);
+      line-height: .95;
+      letter-spacing: 0;
+    }
+
+    .cover p {
+      max-width: 720px;
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.42;
+      color: #344054;
+    }
+
+    .cover-meta {
+      justify-self: end;
+      width: 360px;
+      padding: 22px;
+      border: 1px solid rgba(255,255,255,.72);
+      border-radius: 28px;
+      background: rgba(255,255,255,.58);
+      backdrop-filter: blur(28px) saturate(1.6);
+      box-shadow: 0 16px 40px rgba(15,23,42,.12);
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(17,24,39,.08);
+      font-size: 15px;
+    }
+
+    .meta-row:last-child { border-bottom: 0; }
+    .meta-row span:first-child { color: var(--muted); }
+    .meta-row span:last-child { font-weight: 700; text-align: right; }
+
+    .section-title {
+      margin: 52px 0 20px;
+      font-size: 30px;
+      letter-spacing: 0;
+    }
+
+    .boards {
+      display: grid;
+      grid-template-columns: repeat(4, 390px);
+      gap: 28px;
+      align-items: start;
+      overflow-x: auto;
+      padding-bottom: 18px;
+    }
+
+    .phone {
+      width: 390px;
+      height: 844px;
+      border-radius: 54px;
+      padding: 14px;
+      background: #0b1020;
+      box-shadow: 0 28px 70px rgba(15,23,42,.26);
+    }
+
+    .screen {
+      position: relative;
+      height: 100%;
+      border-radius: 42px;
+      overflow: hidden;
+      background: linear-gradient(180deg, #eef7ff 0%, #f9fbfd 45%, #eef3f8 100%);
+    }
+
+    .screen.dark {
+      background: linear-gradient(180deg, #101827 0%, #121826 54%, #182033 100%);
+      color: #f9fafb;
+    }
+
+    .screen::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 20% 2%, rgba(100,210,255,.24), transparent 26%),
+        radial-gradient(circle at 88% 4%, rgba(255,159,10,.18), transparent 23%);
+      pointer-events: none;
+    }
+
+    .status {
+      position: relative;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      font-size: 14px;
+      font-weight: 700;
+      z-index: 2;
+    }
+
+    .island {
+      position: absolute;
+      left: 50%;
+      top: 12px;
+      width: 116px;
+      height: 32px;
+      transform: translateX(-50%);
+      border-radius: 99px;
+      background: #05070d;
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+      height: calc(100% - 48px);
+      padding: 10px 18px 92px;
+      overflow: hidden;
+    }
+
+    .nav-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .nav-title h2 {
+      margin: 0;
+      font-size: 31px;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .icon-btn {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 19px;
+      background: rgba(255,255,255,.68);
+      border: 1px solid rgba(255,255,255,.7);
+      box-shadow: 0 8px 18px rgba(15,23,42,.09);
+      font-size: 18px;
+    }
+
+    .dark .icon-btn { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.16); }
+
+    .glass {
+      border: 1px solid rgba(255,255,255,.66);
+      background: var(--glass);
+      backdrop-filter: blur(30px) saturate(1.7);
+      box-shadow: 0 14px 34px rgba(15,23,42,.10);
+    }
+
+    .dark .glass {
+      background: rgba(255,255,255,.10);
+      border-color: rgba(255,255,255,.15);
+      box-shadow: 0 16px 40px rgba(0,0,0,.24);
+    }
+
+    .format-bar {
+      display: flex;
+      gap: 8px;
+      padding: 10px;
+      border-radius: 24px;
+      margin-bottom: 14px;
+    }
+
+    .chip {
+      height: 34px;
+      padding: 0 12px;
+      border-radius: 17px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #1d2939;
+      background: rgba(255,255,255,.62);
+      border: 1px solid rgba(255,255,255,.65);
+      white-space: nowrap;
+    }
+
+    .dark .chip { color: #f8fafc; background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.14); }
+    .chip.active { background: #0a84ff; color: white; border-color: rgba(10,132,255,.8); }
+
+    .battle-card {
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .versus {
+      display: grid;
+      grid-template-columns: 1fr 44px 1fr;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .pokemon-mini {
+      min-height: 154px;
+      padding: 12px;
+      border-radius: 22px;
+      background: rgba(255,255,255,.58);
+      border: 1px solid rgba(255,255,255,.72);
+    }
+
+    .dark .pokemon-mini { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.14); }
+
+    .sprite {
+      width: 78px;
+      height: 78px;
+      margin: 0 auto 8px;
+      border-radius: 39px;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 42% 38%, #fff 0 26%, transparent 27%),
+        linear-gradient(180deg, #ff453a 0 48%, #fff 49% 100%);
+      border: 5px solid rgba(17,24,39,.08);
+      box-shadow: inset 0 0 0 3px rgba(17,24,39,.12);
+    }
+
+    .pokemon-mini h3 {
+      margin: 0;
+      font-size: 17px;
+      letter-spacing: 0;
+      text-align: center;
+    }
+
+    .pokemon-mini p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .dark .pokemon-mini p, .dark .muted { color: #aab3c2; }
+
+    .vs {
+      width: 44px;
+      height: 44px;
+      border-radius: 22px;
+      display: grid;
+      place-items: center;
+      background: #111827;
+      color: white;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .damage {
+      padding: 14px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, rgba(10,132,255,.13), rgba(48,209,88,.13));
+      border: 1px solid rgba(10,132,255,.18);
+    }
+
+    .damage strong {
+      display: block;
+      font-size: 23px;
+      margin-bottom: 6px;
+    }
+
+    .damage p {
+      margin: 0;
+      color: #475467;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .dark .damage p { color: #cbd5e1; }
+
+    .move-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .move {
+      display: grid;
+      grid-template-columns: 8px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      height: 40px;
+      padding: 0 10px 0 0;
+      border-radius: 15px;
+      background: rgba(255,255,255,.62);
+      border: 1px solid rgba(255,255,255,.7);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .dark .move { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.12); }
+
+    .typebar {
+      width: 8px;
+      height: 100%;
+      border-radius: 15px 0 0 15px;
+      background: var(--blue);
+    }
+
+    .bottom-tabs {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 14px;
+      z-index: 5;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+      height: 70px;
+      padding: 8px;
+      border-radius: 28px;
+      background: rgba(255,255,255,.72);
+      border: 1px solid rgba(255,255,255,.78);
+      backdrop-filter: blur(32px) saturate(1.8);
+      box-shadow: 0 18px 36px rgba(15,23,42,.16);
+    }
+
+    .dark .bottom-tabs { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.16); }
+
+    .tab {
+      border-radius: 20px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      gap: 2px;
+    }
+
+    .tab b { font-size: 20px; line-height: 1; }
+    .tab.active { background: #0a84ff; color: white; }
+
+    .sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 4;
+      padding: 14px 18px 96px;
+      border-radius: 34px 34px 0 0;
+      background: rgba(255,255,255,.78);
+      border-top: 1px solid rgba(255,255,255,.86);
+      backdrop-filter: blur(36px) saturate(1.7);
+      box-shadow: 0 -20px 50px rgba(15,23,42,.16);
+    }
+
+    .dark .sheet { background: rgba(20,29,45,.82); border-color: rgba(255,255,255,.12); }
+
+    .grabber {
+      width: 42px;
+      height: 5px;
+      border-radius: 5px;
+      margin: 0 auto 14px;
+      background: rgba(17,24,39,.20);
+    }
+
+    .sheet h3 {
+      margin: 0 0 14px;
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    .field-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .control {
+      padding: 12px;
+      border-radius: 20px;
+      background: rgba(255,255,255,.52);
+      border: 1px solid rgba(255,255,255,.7);
+    }
+
+    .dark .control { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.12); }
+
+    .label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .seg {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .seg span {
+      min-height: 30px;
+      padding: 7px 10px;
+      border-radius: 15px;
+      background: rgba(17,24,39,.06);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .dark .seg span { background: rgba(255,255,255,.10); }
+    .seg span.on { background: #111827; color: white; }
+    .dark .seg span.on { background: #0a84ff; }
+
+    .form-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 92px 1fr;
+      min-height: 44px;
+      align-items: center;
+      padding: 0 12px;
+      border-radius: 17px;
+      background: rgba(255,255,255,.62);
+      border: 1px solid rgba(255,255,255,.72);
+      font-size: 14px;
+    }
+
+    .dark .field-row { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.12); }
+    .field-row span:first-child { color: var(--muted); font-weight: 700; font-size: 12px; }
+    .field-row span:last-child { font-weight: 700; text-align: right; }
+
+    .stats-card {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 22px;
+    }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: 38px 34px 1fr 40px;
+      gap: 8px;
+      align-items: center;
+      height: 34px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .bar {
+      height: 8px;
+      border-radius: 8px;
+      background: rgba(17,24,39,.09);
+      overflow: hidden;
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      width: var(--w);
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--blue), var(--green));
+    }
+
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .team-slot {
+      min-height: 96px;
+      padding: 10px;
+      border-radius: 22px;
+      background: rgba(255,255,255,.60);
+      border: 1px solid rgba(255,255,255,.72);
+    }
+
+    .dark .team-slot { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.12); }
+
+    .team-slot .sprite {
+      width: 42px;
+      height: 42px;
+      border-width: 3px;
+      margin: 0 0 8px;
+    }
+
+    .team-slot strong { display: block; font-size: 13px; }
+    .team-slot small { color: var(--muted); font-weight: 700; }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .action {
+      height: 52px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,.60);
+      border: 1px solid rgba(255,255,255,.72);
+      font-size: 11px;
+      font-weight: 800;
+      color: #344054;
+    }
+
+    .dark .action { color: #f8fafc; background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.12); }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .note {
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(255,255,255,.72);
+      border: 1px solid rgba(255,255,255,.82);
+      box-shadow: 0 10px 28px rgba(15,23,42,.08);
+    }
+
+    .note h3 { margin: 0 0 10px; font-size: 18px; }
+    .note p, .note li { color: #475467; line-height: 1.52; }
+    .note ul { margin: 0; padding-left: 18px; }
+
+    @media (max-width: 900px) {
+      .stage { padding: 20px 14px 40px; }
+      .cover { grid-template-columns: 1fr; padding: 30px; }
+      .cover-meta { justify-self: start; width: 100%; }
+      .boards { grid-template-columns: 390px; }
+      .flow { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <section class="cover">
+      <div>
+        <h1>VGC 伤害计算器 App</h1>
+        <p>面向 Expo 的移动端原型。保留网页版完整计算能力，并把双栏桌面工作台重组为主计算台、角色编辑、场地效果、队伍管理和设置五个高频移动工作区。</p>
+      </div>
+      <div class="cover-meta">
+        <div class="meta-row"><span>平台</span><span>iPhone / Expo</span></div>
+        <div class="meta-row"><span>风格</span><span>iOS 26 Liquid Glass</span></div>
+        <div class="meta-row"><span>范围</span><span>网页版全功能</span></div>
+        <div class="meta-row"><span>语言</span><span>中 / 英 / 日</span></div>
+      </div>
+    </section>
+
+    <h2 class="section-title">关键页面</h2>
+    <section class="boards" aria-label="App prototype screens">
+      <article class="phone">
+        <div class="screen">
+          <div class="status"><span>9:41</span><span class="island"></span><span>5G 92%</span></div>
+          <div class="content">
+            <div class="nav-title">
+              <h2>计算</h2>
+              <div class="icon-btn">⚙</div>
+            </div>
+            <div class="format-bar glass">
+              <span class="chip active">SV</span><span class="chip">Reg G</span><span class="chip">2026-05</span><span class="chip">BO3</span>
+            </div>
+            <div class="battle-card glass">
+              <div class="versus">
+                <div class="pokemon-mini">
+                  <div class="sprite"></div>
+                  <h3>密勒顿</h3>
+                  <p>电 / 龙 · 生命宝珠</p>
+                </div>
+                <div class="vs">VS</div>
+                <div class="pokemon-mini">
+                  <div class="sprite"></div>
+                  <h3>炽焰咆哮虎</h3>
+                  <p>火 / 恶 · 突击背心</p>
+                </div>
+              </div>
+              <div class="damage">
+                <strong>78.4% - 92.6%</strong>
+                <p>密勒顿 流星群 → 炽焰咆哮虎：确定 2HKO。点击可展开 16 个随机伤害与多段伤害明细。</p>
+              </div>
+              <div class="move-list">
+                <div class="move"><i class="typebar" style="background:#4f46e5"></i><span>流星群</span><b>92%</b></div>
+                <div class="move"><i class="typebar" style="background:#facc15"></i><span>电气漂浮</span><b>68%</b></div>
+                <div class="move"><i class="typebar" style="background:#8b5cf6"></i><span>太晶爆发</span><b>54%</b></div>
+              </div>
+            </div>
+            <div class="battle-card glass">
+              <div class="label"><span>场地摘要</span><b>双打 · 电气场地 · 反射壁</b></div>
+              <div class="seg"><span class="on">晴天</span><span>帮助</span><span>击中要害</span><span>友情防守</span></div>
+            </div>
+          </div>
+          <nav class="bottom-tabs">
+            <div class="tab active"><b>⌁</b>计算</div><div class="tab"><b>◒</b>编辑</div><div class="tab"><b>◇</b>场地</div><div class="tab"><b>▦</b>队伍</div><div class="tab"><b>☰</b>更多</div>
+          </nav>
+        </div>
+      </article>
+
+      <article class="phone">
+        <div class="screen">
+          <div class="status"><span>9:41</span><span class="island"></span><span>5G 92%</span></div>
+          <div class="content">
+            <div class="nav-title">
+              <h2>攻击方</h2>
+              <div class="icon-btn">⇄</div>
+            </div>
+            <div class="format-bar glass">
+              <span class="chip active">攻击方</span><span class="chip">防御方</span><span class="chip">从队伍载入</span>
+            </div>
+            <div class="battle-card glass">
+              <div class="form-list">
+                <div class="field-row"><span>宝可梦</span><span>密勒顿 · Crown</span></div>
+                <div class="field-row"><span>属性</span><span>电 / 龙 / 太晶妖精</span></div>
+                <div class="field-row"><span>特性</span><span>强子引擎 · 速度增强</span></div>
+                <div class="field-row"><span>道具</span><span>生命宝珠</span></div>
+                <div class="field-row"><span>等级</span><span>50 · 当前 HP 175/175</span></div>
+                <div class="field-row"><span>性格</span><span>胆小 +Spe -Atk</span></div>
+              </div>
+            </div>
+            <div class="stats-card glass">
+              <div class="label"><span>能力值 / EV / IV / 阶级</span><b>剩余 0</b></div>
+              <div class="stat-row"><span>HP</span><span>0</span><div class="bar"><i style="--w:18%"></i></div><span>175</span></div>
+              <div class="stat-row"><span>Atk</span><span>0</span><div class="bar"><i style="--w:10%"></i></div><span>94</span></div>
+              <div class="stat-row"><span>Def</span><span>4</span><div class="bar"><i style="--w:32%"></i></div><span>121</span></div>
+              <div class="stat-row"><span>SpA</span><span>252</span><div class="bar"><i style="--w:88%"></i></div><span>187</span></div>
+              <div class="stat-row"><span>SpD</span><span>0</span><div class="bar"><i style="--w:36%"></i></div><span>135</span></div>
+              <div class="stat-row"><span>Spe</span><span>252</span><div class="bar"><i style="--w:92%"></i></div><span>205</span></div>
+            </div>
+            <div class="battle-card glass">
+              <div class="label"><span>热门构筑</span><b>使用率排序</b></div>
+              <div class="seg"><span class="on">252 SpA / 252 Spe</span><span>耐久型</span><span>围巾型</span></div>
+            </div>
+          </div>
+          <nav class="bottom-tabs">
+            <div class="tab"><b>⌁</b>计算</div><div class="tab active"><b>◒</b>编辑</div><div class="tab"><b>◇</b>场地</div><div class="tab"><b>▦</b>队伍</div><div class="tab"><b>☰</b>更多</div>
+          </nav>
+        </div>
+      </article>
+
+      <article class="phone">
+        <div class="screen dark">
+          <div class="status"><span>9:41</span><span class="island"></span><span>5G 92%</span></div>
+          <div class="content">
+            <div class="nav-title">
+              <h2>场地</h2>
+              <div class="icon-btn">↺</div>
+            </div>
+            <div class="field-grid">
+              <div class="control glass">
+                <div class="label"><span>比赛类型</span><b>双打</b></div>
+                <div class="seg"><span>单打</span><span class="on">双打</span></div>
+              </div>
+              <div class="control glass">
+                <div class="label"><span>天气</span><b>可留空</b></div>
+                <div class="seg"><span class="on">晴天</span><span>雨天</span><span>沙暴</span><span>雪天</span><span>大日照</span><span>大雨</span><span>乱流</span></div>
+              </div>
+              <div class="control glass">
+                <div class="label"><span>场地</span><b>电气场地</b></div>
+                <div class="seg"><span class="on">电气</span><span>青草</span><span>精神</span><span>薄雾</span></div>
+              </div>
+              <div class="control glass">
+                <div class="label"><span>全局效果</span><b>多选</b></div>
+                <div class="seg"><span>妖精气场</span><span>暗黑气场</span><span class="on">灾祸之剑</span><span>重力</span><span>魔法空间</span><span>奇妙空间</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="sheet">
+            <div class="grabber"></div>
+            <h3>防御方状态与边场</h3>
+            <div class="seg"><span>烧伤</span><span>中毒</span><span>麻痹</span><span class="on">光墙</span><span class="on">友情防守</span><span>隐形岩</span><span>撒菱 2</span><span>寄生种子</span><span>顺风</span></div>
+          </div>
+          <nav class="bottom-tabs">
+            <div class="tab"><b>⌁</b>计算</div><div class="tab"><b>◒</b>编辑</div><div class="tab active"><b>◇</b>场地</div><div class="tab"><b>▦</b>队伍</div><div class="tab"><b>☰</b>更多</div>
+          </nav>
+        </div>
+      </article>
+
+      <article class="phone">
+        <div class="screen">
+          <div class="status"><span>9:41</span><span class="island"></span><span>5G 92%</span></div>
+          <div class="content">
+            <div class="nav-title">
+              <h2>队伍</h2>
+              <div class="icon-btn">＋</div>
+            </div>
+            <div class="format-bar glass">
+              <span class="chip active">攻击方队伍</span><span class="chip">防御方队伍</span>
+            </div>
+            <div class="team-grid">
+              <div class="team-slot"><div class="sprite"></div><strong>密勒顿</strong><small>Lv50 · 速度增强</small></div>
+              <div class="team-slot"><div class="sprite"></div><strong>铁武者</strong><small>太晶幽灵</small></div>
+              <div class="team-slot"><div class="sprite"></div><strong>败露球菇</strong><small>气势披带</small></div>
+              <div class="team-slot"><div class="sprite"></div><strong>土地云</strong><small>围巾</small></div>
+              <div class="team-slot"><div class="sprite"></div><strong>振翼发</strong><small>眼镜</small></div>
+              <div class="team-slot"><div class="sprite"></div><strong>炽焰咆哮虎</strong><small>突击背心</small></div>
+            </div>
+            <div class="actions">
+              <div class="action">复制</div><div class="action">导入</div><div class="action">保存</div><div class="action">读取</div>
+            </div>
+          </div>
+          <div class="sheet">
+            <div class="grabber"></div>
+            <h3>更多</h3>
+            <div class="form-list">
+              <div class="field-row"><span>语言</span><span>简体中文 / English / 日本語</span></div>
+              <div class="field-row"><span>主题</span><span>浅色 / 深色 / 跟随系统</span></div>
+              <div class="field-row"><span>反馈</span><span>报告问题 · GitHub 仓库</span></div>
+            </div>
+          </div>
+          <nav class="bottom-tabs">
+            <div class="tab"><b>⌁</b>计算</div><div class="tab"><b>◒</b>编辑</div><div class="tab"><b>◇</b>场地</div><div class="tab active"><b>▦</b>队伍</div><div class="tab"><b>☰</b>更多</div>
+          </nav>
+        </div>
+      </article>
+    </section>
+
+    <h2 class="section-title">交互与信息架构</h2>
+    <section class="flow">
+      <div class="note">
+        <h3>主计算台</h3>
+        <p>顶部保留格式筛选，主区域始终展示攻击方、防御方和当前招式结果。用户修改任意字段后结果即时刷新，多段伤害用展开行呈现。</p>
+      </div>
+      <div class="note">
+        <h3>编辑模型</h3>
+        <ul>
+          <li>攻击方/防御方用分段控件切换，避免手机上同时显示两套长表单。</li>
+          <li>宝可梦、形态、特性、道具、太晶、招式均使用搜索 sheet，保留使用率排序和拼音搜索。</li>
+          <li>能力值编辑保留 Base / IV / EV / Boost / 当前 HP，移动端以横向条和数字输入组合呈现。</li>
+        </ul>
+      </div>
+      <div class="note">
+        <h3>场地与队伍</h3>
+        <ul>
+          <li>天气、场地、光墙、状态、边场、灾祸、气场、空间效果全部保留，多选项用紧凑 chips。</li>
+          <li>队伍支持六格拖拽排序、添加、删除、复制、剪贴板导入、保存、读取和清空。</li>
+          <li>设置页覆盖语言、浅深色主题、问题反馈与 GitHub 入口。</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

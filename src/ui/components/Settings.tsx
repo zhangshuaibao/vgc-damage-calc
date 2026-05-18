@@ -14,12 +14,18 @@ import {
   FiDisc,
   FiGithub,
   FiAlertCircle,
+  FiCoffee,
 } from "react-icons/fi";
+import { FaAlipay, FaPaypal, FaWeixin } from "react-icons/fa";
+
+type CoffeeMethod = "alipay" | "wechat" | null;
 
 const Settings: React.FC = () => {
   const { i18n, t } = useTranslation();
   const { theme, setTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
+  const [activeCoffeeMethod, setActiveCoffeeMethod] =
+    useState<CoffeeMethod>(null);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const tabBase = 0;
@@ -39,12 +45,14 @@ const Settings: React.FC = () => {
     i18n.changeLanguage(lng);
     localStorage.setItem("language", lng);
     setIsOpen(false);
+    setActiveCoffeeMethod(null);
     setActiveSubmenu(null);
   };
 
   const changeTheme = (newTheme: "light" | "dark") => {
     setTheme(newTheme);
     setIsOpen(false);
+    setActiveCoffeeMethod(null);
     setActiveSubmenu(null);
   };
 
@@ -56,6 +64,7 @@ const Settings: React.FC = () => {
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setIsOpen(false);
+        setActiveCoffeeMethod(null);
         setActiveSubmenu(null);
       }
     };
@@ -81,6 +90,93 @@ const Settings: React.FC = () => {
           <span className="st-external-link-text">{t("pokemon.olderVersionEntry")}</span>
         </a>
       </div> */}
+      <div
+        className="st-coffee"
+        onMouseEnter={() => {
+          setIsOpen(false);
+          setActiveSubmenu(null);
+        }}
+        onMouseLeave={() => setActiveCoffeeMethod(null)}
+      >
+        <button
+          className="st-coffee-button"
+          aria-label={t("buyMeCoffee")}
+          tabIndex={tabBase + 1}
+        >
+          <FiCoffee className="st-coffee-icon" />
+        </button>
+
+        <div className="st-coffee-panel">
+          <div className="st-coffee-panel-header">
+            <h3 className="st-coffee-title">{t("coffeeSupportTitle")}</h3>
+            <p className="st-coffee-hint">{t("coffeeSupportHint")}</p>
+          </div>
+
+          <div className="st-coffee-actions">
+            <button
+              type="button"
+              className={`st-coffee-method-button ${
+                activeCoffeeMethod === "alipay"
+                  ? "st-coffee-method-button-active"
+                  : ""
+              }`}
+              onMouseEnter={() => setActiveCoffeeMethod("alipay")}
+              onFocus={() => setActiveCoffeeMethod("alipay")}
+              onMouseLeave={() => setActiveCoffeeMethod(null)}
+              aria-label={t("alipay")}
+            >
+              <FaAlipay aria-hidden="true" />
+            </button>
+
+            <button
+              type="button"
+              className={`st-coffee-method-button ${
+                activeCoffeeMethod === "wechat"
+                  ? "st-coffee-method-button-active"
+                  : ""
+              }`}
+              onMouseEnter={() => setActiveCoffeeMethod("wechat")}
+              onFocus={() => setActiveCoffeeMethod("wechat")}
+              onMouseLeave={() => setActiveCoffeeMethod(null)}
+              aria-label={t("wechatPay")}
+            >
+              <FaWeixin aria-hidden="true" />
+            </button>
+
+            <a
+              href="https://www.paypal.com/ncp/payment/K7KNW24Y566DL"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="st-coffee-method-button st-coffee-method-button-paypal"
+              aria-label={t("paypal")}
+            >
+              <FaPaypal aria-hidden="true" />
+              <span className="st-tooltip" role="tooltip">
+                {t("coffeePayPalHint")}
+              </span>
+            </a>
+          </div>
+
+          {activeCoffeeMethod && (
+            <div className="st-coffee-preview">
+              <img
+                src={
+                  activeCoffeeMethod === "alipay"
+                    ? "./images/coffee/alipay.jpg"
+                    : "./images/coffee/wechat.jpg"
+                }
+                alt={
+                  activeCoffeeMethod === "alipay"
+                    ? t("alipay")
+                    : t("wechatPay")
+                }
+                className="st-coffee-qr"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
       <a
         href="https://github.com/radiantwf/vgc-damage-calc/issues"
         target="_blank"
@@ -89,6 +185,9 @@ const Settings: React.FC = () => {
         aria-label={t("reportBug")}
       >
         <FiAlertCircle className="st-gear-icon" />
+        <span className="st-tooltip" role="tooltip">
+          {t("reportBug")}
+        </span>
       </a>
       <a
         href="https://github.com/radiantwf/vgc-damage-calc.git"
@@ -98,14 +197,23 @@ const Settings: React.FC = () => {
         aria-label={t("githubRepo")}
       >
         <FiGithub className="st-gear-icon" />
+        <span className="st-tooltip" role="tooltip">
+          {t("githubRepo")}
+        </span>
       </a>
       <button
         className="st-gear-button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          setIsOpen(!isOpen);
+          setActiveCoffeeMethod(null);
+        }}
         aria-label={t("settings")}
-        tabIndex={tabBase + 1}
+        tabIndex={tabBase + 2}
       >
         <FiSettings className="st-gear-icon" />
+        <span className="st-tooltip" role="tooltip">
+          {t("settings")}
+        </span>
       </button>
 
       {isOpen && (

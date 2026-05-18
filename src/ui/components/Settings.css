@@ -6,7 +6,23 @@
   gap: 12px;
 }
 
+.st-coffee {
+  position: relative;
+  display: inline-flex;
+}
+
+.st-coffee::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  right: 50%;
+  transform: translateX(50%);
+  width: 264px;
+  height: 14px;
+}
+
 /* 设置按钮 */
+.st-coffee-button,
 .st-gear-button {
   width: 28px;
   height: 28px;
@@ -19,16 +35,18 @@
   justify-content: center;
   transition: all 0.2s ease;
   color: var(--text-primary);
+  position: relative;
 }
 
+.st-coffee-button:hover,
 .st-gear-button:hover {
   background: var(--bg-hover);
   color: var(--text-accent);
-  transform: rotate(90deg);
 }
 
+.st-coffee-button:active,
 .st-gear-button:active {
-  transform: rotate(90deg) scale(0.95);
+  transform: scale(0.95);
 }
 
 /* 图标链接 */
@@ -42,6 +60,7 @@
   color: var(--text-primary);
   transition: all 0.2s ease;
   text-decoration: none;
+  position: relative;
 }
 
 .st-icon-link:hover {
@@ -59,6 +78,195 @@
   width: 18px;
   height: 18px;
   transition: transform 0.3s ease;
+}
+
+.st-coffee-icon {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.3s ease;
+}
+
+.st-gear-button:hover .st-gear-icon,
+.st-gear-button:focus-visible .st-gear-icon {
+  transform: rotate(90deg);
+}
+
+.st-coffee-button:hover .st-coffee-icon,
+.st-coffee-button:focus-visible .st-coffee-icon {
+  transform: rotate(-12deg) scale(1.08);
+}
+
+.st-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 50%;
+  transform: translateX(50%) translateY(-4px);
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease,
+    visibility 0.15s ease;
+  z-index: 1100;
+}
+
+.st-tooltip::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  right: 50%;
+  transform: translateX(50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent var(--border-color) transparent;
+}
+
+.st-tooltip::after {
+  content: "";
+  position: absolute;
+  bottom: calc(100% - 1px);
+  right: 50%;
+  transform: translateX(50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent var(--bg-primary) transparent;
+}
+
+.st-icon-link:hover .st-tooltip,
+.st-icon-link:focus-visible .st-tooltip,
+.st-gear-button:hover .st-tooltip,
+.st-gear-button:focus-visible .st-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(50%) translateY(0);
+}
+
+.st-coffee-panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 50%;
+  width: 264px;
+  padding: 14px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+  z-index: 1200;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(50%) translateY(-4px);
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease,
+    visibility 0.15s ease;
+}
+
+.st-coffee:hover .st-coffee-panel,
+.st-coffee:focus-within .st-coffee-panel {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(50%) translateY(0);
+}
+
+.st-coffee-panel-header {
+  margin-bottom: 12px;
+}
+
+.st-coffee-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.st-coffee-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.st-coffee-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.st-coffee-method-button {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.st-coffee-method-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.st-coffee-method-button:hover,
+.st-coffee-method-button:focus-visible,
+.st-coffee-method-button-active {
+  color: var(--text-accent);
+  border-color: var(--border-hover);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+.st-coffee-method-button:hover .st-tooltip,
+.st-coffee-method-button:focus-visible .st-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(50%) translateY(0);
+}
+
+.st-coffee-method-button-paypal {
+  margin-left: auto;
+}
+
+.st-coffee-preview {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+}
+
+.st-coffee-qr {
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: #fff;
+  align-self: center;
 }
 
 /* 设置下拉菜单 */

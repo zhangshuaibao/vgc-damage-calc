@@ -2,6 +2,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import Backend from 'i18next-http-backend';
+import { BUILD_VERSION } from '../utils/build-version';
 
 // 语言常量定义
 export const SUPPORTED_LANGUAGES = ['zh', 'en', 'ja'] as const;
@@ -91,7 +92,7 @@ i18n
     // 后端配置
     backend: {
       // 资源文件路径（支持命名空间）
-      loadPath: `${process.env.PUBLIC_URL || ''}/locales/{{lng}}/{{ns}}.{{lng}}.json`,
+      loadPath: `${process.env.PUBLIC_URL || ''}/locales/{{lng}}/{{ns}}.{{lng}}.json?v=${BUILD_VERSION}`,
     },
     
     // 语言映射配置

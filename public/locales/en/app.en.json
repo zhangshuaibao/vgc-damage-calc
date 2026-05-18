@@ -21,6 +21,25 @@
   "theme": "Theme",
   "reportBug": "Report Bug",
   "githubRepo": "GitHub Repository",
+  "buyMeCoffee": "Buy Me a Coffee",
+  "coffeeSupportTitle": "Support the Developer",
+  "coffeeSupportHint": "Your support helps cover data maintenance, metagame updates, and server costs.",
+  "coffeePayPalHint": "Support via PayPal",
+  "coffeeScanHint": "Scan to support",
+  "alipay": "Alipay",
+  "wechatPay": "WeChat",
+  "paypal": "PayPal",
+  "header": {
+    "title": "VGC Stats",
+    "appName": "VGC Stats",
+    "appIconAlt": "VGC Stats",
+    "downloadApk": "Download APK",
+    "googlePlay": "Google Play",
+    "appStore": "App Store"
+  },
+  "footer": {
+    "editHint": "Double-click move power or base stat values to edit them directly."
+  },
   "formatGame": {
     "SV": "Scarlet / Violet",
     "Champions": "Champions"

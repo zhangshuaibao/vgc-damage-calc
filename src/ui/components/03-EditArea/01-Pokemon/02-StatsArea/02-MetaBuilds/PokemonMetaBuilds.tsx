@@ -13,7 +13,7 @@ import { usePokemonTranslation } from "../../../../../../contexts/usePokemonTran
 import { MetaBuildsUsage } from "../../../../../../models/showndown.model";
 import { computeStat } from "../../../../../../utils/stats.utils";
 import { t } from "i18next";
-import { FiArrowLeft, FiCopy } from "react-icons/fi";
+import { FiArrowLeft, FiArrowUp, FiCopy } from "react-icons/fi";
 import { confirmable, ContextAwareConfirmation } from "react-confirm";
 import ConfirmDialog, {
   type ConfirmPayload,
@@ -366,7 +366,7 @@ const PokemonMetaBuilds: React.FC<EditAreaProps> = ({ isAttacker }) => {
           onClick={handleImport}
           tabIndex={tabBase + 202}
         >
-          <FiArrowLeft />
+          <FiArrowUp />
         </button>
         <button
           type="button"

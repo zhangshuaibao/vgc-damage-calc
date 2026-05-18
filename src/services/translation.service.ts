@@ -1,4 +1,5 @@
 import { Language } from "../i18n/i18n";
+import { BUILD_VERSION } from "../utils/build-version";
 
 // 语言常量定义，避免生产构建时字符串比较问题
 const LANGUAGE_ZH: Language = 'zh';
@@ -93,7 +94,9 @@ class TranslationService {
   private async loadTranslationData(langCode: string): Promise<TranslationData> {
     const loadTranslationFile = async (filename: string): Promise<{ [key: string]: string }> => {
       try {
-        const response = await fetch(`${process.env.PUBLIC_URL || ''}/locales/${langCode}/pokemon/${filename}.${langCode}.json`);
+        const response = await fetch(
+          `${process.env.PUBLIC_URL || ''}/locales/${langCode}/pokemon/${filename}.${langCode}.json?v=${BUILD_VERSION}`
+        );
         if (!response.ok) {
           console.warn(`Failed to load ${filename} translations for ${langCode}:`, response.status);
           return {};
