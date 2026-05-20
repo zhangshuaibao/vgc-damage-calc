@@ -15,6 +15,74 @@
   overflow-wrap: break-word;
 }
 
+.display-damage__token--ev-value {
+  color: var(--text-color);
+}
+
+.display-damage__token--ev-positive {
+  color: #cf3d3d;
+}
+
+.display-damage__token--ev-negative {
+  color: #2e8b57;
+}
+
+.display-damage__token--ev-label {
+  color: var(--text-color-secondary);
+}
+
+.display-damage__token--move {
+  font-weight: 600;
+}
+
+.display-damage__token--pokemon {
+  display: inline-block;
+  font-size: 1.1em;
+  font-weight: 700;
+}
+
+.display-damage__token--vs {
+  display: inline-block;
+  font-size: 1.2em;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: var(--text-color-secondary);
+}
+
+.display-damage__summary {
+  color: var(--text-color);
+}
+
+.display-damage__summary-range,
+.display-damage__summary-suffix {
+  color: inherit;
+}
+
+.display-damage__summary--ko,
+.display-damage__amount-value--ko {
+  color: var(--damage-ko-color);
+}
+
+.display-damage__summary--impossible {
+  color: var(--damage-impossible-color);
+}
+
+.display-damage__amount-value {
+  color: inherit;
+}
+
+[data-theme="dark"] .display-damage__token--ev-positive {
+  color: #ff8d8d;
+}
+
+[data-theme="dark"] .display-damage__token--ev-negative {
+  color: #7ad6a0;
+}
+
+[data-theme="dark"] .display-damage__token--ev-label {
+  color: #efefef;
+}
+
 .display-damage__description--left {
   text-align: left;
 }

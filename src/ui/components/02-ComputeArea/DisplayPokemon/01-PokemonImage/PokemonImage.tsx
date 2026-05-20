@@ -59,14 +59,14 @@ export const PokemonImage: React.FC<PokemonImageProps> = ({
         {types.length === 2 ? (
           <div className="pokemon-image__dual-types">
             <div
-              className={`pokemon-image__type`}
+              className="pokemon-image__type pokemon-image__type--dual-left"
               style={{
                 backgroundColor: getTypeColor(types[0]),
                 color: getTypeTextColor(types[0]),
               }}
             />
             <div
-              className={`pokemon-image__type`}
+              className="pokemon-image__type pokemon-image__type--dual-right"
               style={{
                 backgroundColor: getTypeColor(types[1]),
                 color: getTypeTextColor(types[1]),

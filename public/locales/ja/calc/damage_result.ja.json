@@ -27,6 +27,8 @@
     "steelyspirit": "はがねのせいしん",
     "batteryboosted": "バッテリー",
     "powerspot": "パワースポット",
+    "alliesFainted_one": "{{count}}体のひんしの味方",
+    "alliesFainted_other": "{{count}}体のひんしの味方",
     "wonderroom": "ワンダールーム",
     "approx": "概算 ",
     "possible": "可能性 ",

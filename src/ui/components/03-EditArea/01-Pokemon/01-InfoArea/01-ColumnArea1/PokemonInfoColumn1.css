@@ -77,8 +77,10 @@
 
 .pi_col1-pokemon-dropdown-types {
   display: flex;
+  flex-direction: row;
   gap: 1px;
   height: 3px;
+  direction: ltr;
 }
 
 .pi_col1-pokemon-dropdown-type {

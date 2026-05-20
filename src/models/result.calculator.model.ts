@@ -9,6 +9,21 @@ import i18n, { Language } from "../i18n/i18n";
 import { translationService } from "../services/translation.service";
 import { Pokemon } from "./pokemon.calculator.model";
 
+export interface ResultDescriptionToken {
+  kind:
+    | "text"
+    | "evValue"
+    | "evPositive"
+    | "evNegative"
+    | "evLabel"
+    | "move"
+    | "vs"
+    | "pokemon";
+  text: string;
+  moveType?: string;
+  pokemonTypes?: string[];
+}
+
 const championsActualEvToDisplayEv = (actualEv: number): number => {
   const normalized = Math.max(0, Math.floor(actualEv));
   if (normalized === 0) {
@@ -36,24 +51,6 @@ const formatChampionsEvText = (evText?: string): string | undefined => {
   }
 
   return `${championsActualEvToDisplayEv(evValue)}${match[2]}${match[3]}`;
-};
-
-const formatChampionsEvDescText = (
-  descText: string,
-  evTexts: Array<string | undefined>,
-): string => {
-  if (!ShowdownDataService.isChampionsGame()) {
-    return descText;
-  }
-
-  let nextText = descText;
-  for (const evText of evTexts) {
-    const formattedEvText = formatChampionsEvText(evText);
-    if (evText && formattedEvText && evText !== formattedEvText) {
-      nextText = nextText.replace(evText, formattedEvText);
-    }
-  }
-  return nextText;
 };
 
 export class Result extends CalculatorResult {
@@ -86,193 +83,263 @@ export class Result extends CalculatorResult {
     }
   }
 
-  public getFullDescText(): string {
+  private getMoveType(): string | undefined {
+    const resultMove = this.move as Move | undefined;
+    return resultMove?.type || this.rawDesc.moveType;
+  }
+
+  private getEvTokenKind(
+    evText: string,
+  ): ResultDescriptionToken["kind"] {
+    if (evText.includes("+")) {
+      return "evPositive";
+    }
+    if (evText.includes("-")) {
+      return "evNegative";
+    }
+    return "evValue";
+  }
+
+  private pushEvTokens(
+    evText: string,
+    pushText: (
+      text: string,
+      kind?: ResultDescriptionToken["kind"],
+      moveType?: string,
+      pokemonTypes?: string[],
+    ) => void,
+  ): void {
+    const match = evText.match(/^(\d+[+-]?)(?:\s+(.*))?$/);
+    if (!match) {
+      pushText(evText);
+      return;
+    }
+
+    pushText(match[1], this.getEvTokenKind(match[1]));
+    if (match[2]) {
+      pushText(match[2], "evLabel");
+    }
+  }
+
+  private createDescriptionToken(
+    text: string,
+    kind: ResultDescriptionToken["kind"] = "text",
+    moveType?: string,
+    pokemonTypes?: string[],
+  ): ResultDescriptionToken {
+    return {
+      text,
+      kind,
+      ...(moveType ? { moveType } : {}),
+      ...(pokemonTypes ? { pokemonTypes } : {}),
+    };
+  }
+
+  private getPokemonTypes(
+    pokemon?: Pokemon,
+  ): string[] | undefined {
+    if (!pokemon?.types || pokemon.types.length === 0) {
+      return undefined;
+    }
+    return pokemon.types.map((type) => type.toLowerCase());
+  }
+
+  public getFullDescTokens(): ResultDescriptionToken[] {
     const lang = i18n.language as unknown as Language;
     const rawDesc = this.rawDesc;
-    if (lang === "en") {
-      try {
-        return formatChampionsEvDescText(this.fullDesc(), [
-          rawDesc.attackEVs,
-          rawDesc.HPEVs,
-          rawDesc.defenseEVs,
-        ]);
-      } catch (error) {
-        // logResultDescError("fullDesc", error, rawDesc);
-        return "";
+    const descriptionTokens: ResultDescriptionToken[] = [];
+    const pushText = (
+      text: string,
+      kind: ResultDescriptionToken["kind"] = "text",
+      moveType?: string,
+      pokemonTypes?: string[],
+    ) => {
+      descriptionTokens.push(
+        this.createDescriptionToken(text, kind, moveType, pokemonTypes),
+      );
+    };
+    const pushEvText = (evText?: string) => {
+      const formattedEvText = formatChampionsEvText(evText);
+      if (!formattedEvText) {
+        return;
       }
-    }
-    const damageStrings1: string[] = [];
+      this.pushEvTokens(formattedEvText, pushText);
+    };
+
     if (rawDesc.attackBoost != null && rawDesc.attackBoost !== 0) {
-      damageStrings1.push(
-        rawDesc.attackBoost! > 0
+      pushText(
+        rawDesc.attackBoost > 0
           ? `+${rawDesc.attackBoost}`
           : `${rawDesc.attackBoost}`,
       );
     }
-    if (rawDesc.attackEVs != null) {
-      damageStrings1.push(formatChampionsEvText(rawDesc.attackEVs!)!);
-    }
+    pushEvText(rawDesc.attackEVs);
     if (rawDesc.attackerItem != null) {
-      const translated = translationService.translateItemSync(
-        lang,
-        rawDesc.attackerItem!,
+      pushText(
+        translationService.translateItemSync(lang, rawDesc.attackerItem!),
       );
-      damageStrings1.push(translated);
     }
     if (rawDesc.attackerAbility != null) {
-      const translated = translationService.translateAbilitySync(
-        lang,
-        rawDesc.attackerAbility!,
+      pushText(
+        translationService.translateAbilitySync(lang, rawDesc.attackerAbility!),
       );
-      damageStrings1.push(translated);
     }
     if (rawDesc.isBurned) {
-      damageStrings1.push(t("damageResult.burned"));
+      pushText(t("damageResult.burned"));
+    }
+    if (rawDesc.alliesFainted && rawDesc.alliesFainted > 0) {
+      pushText(
+        t("damageResult.alliesFainted", {
+          count: rawDesc.alliesFainted,
+        }),
+      );
     }
     if (rawDesc.attackerTera != null) {
-      damageStrings1.push(t("damageResult.tera"));
-      const translated = translationService.translateTypeSync(
-        lang,
-        rawDesc.attackerTera!,
-      );
-      damageStrings1.push(translated);
+      pushText(t("damageResult.tera"));
+      pushText(translationService.translateTypeSync(lang, rawDesc.attackerTera!));
     }
     if (rawDesc.isSwordOfRuin) {
-      damageStrings1.push(t("damageResult.swordofruin"));
+      pushText(t("damageResult.swordofruin"));
     }
     if (rawDesc.isBeadsOfRuin) {
-      damageStrings1.push(t("damageResult.beadsofruin"));
+      pushText(t("damageResult.beadsofruin"));
     }
     if (!this._overrideAttackerPokemonName && rawDesc.attackerName) {
-        this._overrideAttackerPokemonName = rawDesc.attackerName!;
+      this._overrideAttackerPokemonName = rawDesc.attackerName!;
     }
     if (this._overrideAttackerPokemonName) {
-      const translated = translationService.translatePokemonSync(
-        lang,
-        this._overrideAttackerPokemonName,
+      pushText(
+        translationService.translatePokemonSync(
+          lang,
+          this._overrideAttackerPokemonName,
+        ),
+        "pokemon",
+        undefined,
+        this.getPokemonTypes(this.attacker as Pokemon | undefined),
       );
-      damageStrings1.push(translated);
     }
     if (rawDesc.isHelpingHand) {
-      damageStrings1.push(t("damageResult.helpinghand"));
+      pushText(t("damageResult.helpinghand"));
     }
     if (rawDesc.isFlowerGiftAttacker) {
-      damageStrings1.push(t("damageResult.flowergift"));
+      pushText(t("damageResult.flowergift"));
     }
     if (rawDesc.isSteelySpiritAttacker) {
-      damageStrings1.push(t("damageResult.steelyspirit"));
+      pushText(t("damageResult.steelyspirit"));
     }
     if (rawDesc.isBattery) {
-      damageStrings1.push(t("damageResult.batteryboosted"));
+      pushText(t("damageResult.batteryboosted"));
     }
     if (rawDesc.isPowerSpot) {
-      damageStrings1.push(t("damageResult.powerspot"));
+      pushText(t("damageResult.powerspot"));
     }
     if (rawDesc.moveName != null) {
-      const translated = translationService.translateMoveSync(
-        lang,
-        rawDesc.moveName!,
+      pushText(
+        translationService.translateMoveSync(lang, rawDesc.moveName!),
+        "move",
+        this.getMoveType(),
       );
-      damageStrings1.push(translated);
     }
     if (rawDesc.moveBP != null && rawDesc.moveBP !== 0) {
-      damageStrings1.push(`(${rawDesc.moveBP}${t("damageResult.bp")})`);
+      pushText(`(${rawDesc.moveBP}${t("damageResult.bp")})`);
     }
-    if (rawDesc.hits != null && rawDesc.hits! > 1) {
-      damageStrings1.push(
-        t("damageResult.hits").replaceAll("{{hits}}", rawDesc.hits!.toString()),
+    if (rawDesc.hits != null && rawDesc.hits > 1) {
+      pushText(
+        t("damageResult.hits").replaceAll("{{hits}}", rawDesc.hits.toString()),
       );
     }
-    damageStrings1.push("vs.");
+
+    pushText("VS.", "vs");
+
     if (rawDesc.defenseBoost != null && rawDesc.defenseBoost !== 0) {
-      damageStrings1.push(
-        rawDesc.defenseBoost! > 0
+      pushText(
+        rawDesc.defenseBoost > 0
           ? `+${rawDesc.defenseBoost}`
           : `${rawDesc.defenseBoost}`,
       );
     }
-    const tmpList: string[] = [];
     if (rawDesc.HPEVs != null) {
-      tmpList.push(formatChampionsEvText(rawDesc.HPEVs!)!);
+      pushEvText(rawDesc.HPEVs);
+    }
+    if (rawDesc.HPEVs != null && rawDesc.defenseEVs != null) {
+      pushText("/", "evLabel");
     }
     if (rawDesc.defenseEVs != null) {
-      tmpList.push(formatChampionsEvText(rawDesc.defenseEVs!)!);
-    }
-    if (tmpList.length > 0) {
-      damageStrings1.push(tmpList.join(" / "));
+      pushEvText(rawDesc.defenseEVs);
     }
     if (rawDesc.defenderItem != null) {
-      const translated = translationService.translateItemSync(
-        lang,
-        rawDesc.defenderItem!,
+      pushText(
+        translationService.translateItemSync(lang, rawDesc.defenderItem!),
       );
-      damageStrings1.push(translated);
     }
     if (rawDesc.defenderAbility != null) {
-      const translated = translationService.translateAbilitySync(
-        lang,
-        rawDesc.defenderAbility!,
+      pushText(
+        translationService.translateAbilitySync(lang, rawDesc.defenderAbility!),
       );
-      damageStrings1.push(translated);
     }
     if (rawDesc.isDefenderDynamaxed) {
-      damageStrings1.push(t("damageResult.dynamax"));
+      pushText(t("damageResult.dynamax"));
     }
     if (rawDesc.defenderTera != null) {
-      damageStrings1.push(t("damageResult.tera"));
-      const translated = translationService.translateTypeSync(
-        lang,
-        rawDesc.defenderTera!,
-      );
-      damageStrings1.push(translated);
+      pushText(t("damageResult.tera"));
+      pushText(translationService.translateTypeSync(lang, rawDesc.defenderTera!));
     }
     if (rawDesc.isTabletsOfRuin) {
-      damageStrings1.push(t("damageResult.tabletsofruin"));
+      pushText(t("damageResult.tabletsofruin"));
     }
     if (rawDesc.isVesselOfRuin) {
-      damageStrings1.push(t("damageResult.vesselofruin"));
+      pushText(t("damageResult.vesselofruin"));
     }
     if (!this._overrideDefenderPokemonName && rawDesc.defenderName) {
-        this._overrideDefenderPokemonName = rawDesc.defenderName!;
+      this._overrideDefenderPokemonName = rawDesc.defenderName!;
     }
     if (this._overrideDefenderPokemonName) {
-      const translated = translationService.translatePokemonSync(
-        lang,
-        this._overrideDefenderPokemonName,
+      pushText(
+        translationService.translatePokemonSync(
+          lang,
+          this._overrideDefenderPokemonName,
+        ),
+        "pokemon",
+        undefined,
+        this.getPokemonTypes(this.defender as Pokemon | undefined),
       );
-      damageStrings1.push(translated);
     }
     if (rawDesc.terrain) {
-      damageStrings1.push(
-        t("damageResult." + rawDesc.terrain!.toLowerCase().replaceAll(" ", "")),
+      pushText(
+        t("damageResult." + rawDesc.terrain.toLowerCase().replaceAll(" ", "")),
       );
     }
     if (rawDesc.weather) {
-      damageStrings1.push(
-        t("damageResult." + rawDesc.weather!.toLowerCase().replaceAll(" ", "")),
+      pushText(
+        t("damageResult." + rawDesc.weather.toLowerCase().replaceAll(" ", "")),
       );
     }
     if (rawDesc.isFlowerGiftDefender) {
-      damageStrings1.push(t("damageResult.flowergift"));
+      pushText(t("damageResult.flowergift"));
     }
     if (rawDesc.isReflect) {
-      damageStrings1.push(t("damageResult.reflect"));
+      pushText(t("damageResult.reflect"));
     }
     if (rawDesc.isLightScreen) {
-      damageStrings1.push(t("damageResult.lightscreen"));
+      pushText(t("damageResult.lightscreen"));
     }
     if (rawDesc.isFriendGuard) {
-      damageStrings1.push(t("damageResult.friendguard"));
+      pushText(t("damageResult.friendguard"));
     }
     if (rawDesc.isAuroraVeil) {
-      damageStrings1.push(t("damageResult.auroraveil"));
+      pushText(t("damageResult.auroraveil"));
     }
     if (rawDesc.isCritical) {
-      damageStrings1.push(t("damageResult.criticalhit"));
+      pushText(t("damageResult.criticalhit"));
     }
     if (rawDesc.isWonderRoom) {
-      damageStrings1.push(t("damageResult.wonderroom"));
+      pushText(t("damageResult.wonderroom"));
     }
+
+    return descriptionTokens;
+  }
+
+  public getDamageSummaryText(): string {
     const damageStrings2: string[] = [];
     if (this.damage != null && this.damage !== 0) {
       const range = this.range();
@@ -324,17 +391,17 @@ export class Result extends CalculatorResult {
         if (
           kochance &&
           kochance.chance &&
-          kochance.chance! > 0 &&
+          kochance.chance > 0 &&
           kochance.n > 0
         ) {
           damageStrings2.push(` -- `);
-          if (kochance.chance! === 1) {
+          if (kochance.chance === 1) {
             damageStrings2.push(t("damageResult.kochance_guaranteed"));
           } else {
             damageStrings2.push(
               t("damageResult.kochance_chance").replaceAll(
                 "{{chance}}",
-                `${(kochance.chance! * 100).toFixed(2)}%`,
+                `${(kochance.chance * 100).toFixed(2)}%`,
               ),
             );
           }
@@ -386,9 +453,17 @@ export class Result extends CalculatorResult {
       }
     }
 
-    return damageStrings2.length > 0
-      ? damageStrings1.join(" ").concat(": ", damageStrings2.join(""))
-      : damageStrings1.join(" ");
+    return damageStrings2.join("");
+  }
+
+  public getFullDescText(): string {
+    const descriptionText = this.getFullDescTokens()
+      .map((token) => token.text)
+      .join(" ");
+    const damageSummaryText = this.getDamageSummaryText();
+    return damageSummaryText
+      ? descriptionText.concat(": ", damageSummaryText)
+      : descriptionText;
   }
 
   _getKoChangeDamageStrByPartText(text: string): string {
@@ -543,6 +618,20 @@ export class Result extends CalculatorResult {
     }
     return `${dmg}`;
   }
+
+  public getPossibleDamageAmounts(): number[] {
+    const dmg = this._possibleDamageAmounts();
+    return Array.isArray(dmg) ? dmg : [dmg];
+  }
+
+  public getDefenderRemainingHp(): number {
+    try {
+      return this.defender.curHP();
+    } catch {
+      return this.defender?.stats?.hp || 0;
+    }
+  }
+
   public getOhkoChanceValue(): number {
     try {
       const hp =

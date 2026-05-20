@@ -319,11 +319,13 @@ const PokemonInfoColumn2: React.FC<EditAreaProps> = ({ isAttacker }) => {
             pokemonTypes.map((type, index) => (
               <div
                 key={index}
-                className={`pi_col2-pokemon-type-${
+                className={
                   pokemonTypes.length === 1
-                    ? "full"
-                    : `half-${index === 0 ? "l" : "r"}`
-                }`}
+                    ? "pi_col2-pokemon-type-full"
+                    : index === 0
+                      ? "pi_col2-pokemon-type-half-left"
+                      : "pi_col2-pokemon-type-half-right"
+                }
                 style={{
                   backgroundColor: getTypeColor(type),
                   color: getTypeTextColor(type),
