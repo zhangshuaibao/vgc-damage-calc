@@ -31,7 +31,7 @@ export const AppPage: React.FC = () => {
 };
 
 const AppContent: React.FC = () => {
-  const { ready, isLoading } = useLanguage();
+  const { ready, isLoading, language } = useLanguage();
   const { t } = useTranslation("app");
   const [hasInitialized, setHasInitialized] = useState(ready);
 
@@ -40,6 +40,14 @@ const AppContent: React.FC = () => {
       setHasInitialized(true);
     }
   }, [ready]);
+
+  useEffect(() => {
+    if (!ready) {
+      return;
+    }
+    document.title = t("appTitle");
+    document.documentElement.lang = language;
+  }, [language, ready, t]);
 
   // 只在首次启动且语言资源尚未就绪时阻塞渲染，避免切换语言时卸载整棵状态树
   if (!hasInitialized && (isLoading || !ready)) {

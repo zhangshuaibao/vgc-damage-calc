@@ -36,6 +36,8 @@ const PokemonInfoColumn2: React.FC<EditAreaProps> = ({ isAttacker }) => {
     pokemonSpecies,
     ability,
     setAbility,
+    supremeOverlordAlliesFainted,
+    setSupremeOverlordAlliesFainted,
     boostedStat,
     setBoostedStat,
     intimidateActived,
@@ -214,6 +216,37 @@ const PokemonInfoColumn2: React.FC<EditAreaProps> = ({ isAttacker }) => {
       },
     [t]
   );
+
+  const SupremeOverlordDropdownItem = useMemo(
+    () =>
+      ({ item }: { item: DropdownItem }) => {
+        return (
+          <div className={`pi_col2-pokemon-boosted-stat-item`}>
+            {t("pokemon.supremeOverlordAlliesFainted.option", {
+              count: item.value as number,
+            })}
+          </div>
+        );
+    },
+    [t]
+  );
+
+  const supremeOverlordOptions: DropdownItem[] = useMemo(() => {
+    return Array.from({ length: 6 }, (_, fainted) => {
+      const label = t("pokemon.supremeOverlordAlliesFainted.option", {
+        count: fainted,
+      });
+      return {
+        key: String(fainted),
+        value: fainted,
+        searchKey: `${fainted}|${label}${
+          language === "zh" ? `|${AppPinyin.getSearchKeywords(label)}` : ""
+        }`,
+        displayContentFC: label,
+        dropdownItemFC: SupremeOverlordDropdownItem,
+      };
+    });
+  }, [SupremeOverlordDropdownItem, language, t]);
   // 增强属性选项
   const boostedStatOptions = useMemo(() => {
     return options.map((option) => ({
@@ -241,6 +274,10 @@ const PokemonInfoColumn2: React.FC<EditAreaProps> = ({ isAttacker }) => {
   // 检查是否应该显示是否激活威吓特性开关
   const shouldShowIntimidateSwitch = useMemo(() => {
     return ability?.name === "Intimidate";
+  }, [ability]);
+
+  const shouldShowSupremeOverlordAlliesFainted = useMemo(() => {
+    return ability?.name === "Supreme Overlord";
   }, [ability]);
 
   // 当特性下拉列表更新时，自动选择第一个特性
@@ -319,6 +356,21 @@ const PokemonInfoColumn2: React.FC<EditAreaProps> = ({ isAttacker }) => {
             showDropdownButton={false}
             tabIndex={tabBase + 3}
           />
+          {shouldShowSupremeOverlordAlliesFainted && (
+            <SearchableDropdown
+              items={supremeOverlordOptions}
+              value={supremeOverlordAlliesFainted}
+              onChange={(value) => {
+                setSupremeOverlordAlliesFainted(value as number);
+              }}
+              placeholder={t("pokemon.supremeOverlordAlliesFainted.placeholder")}
+              className="pi_col2-pokemon-boosted-stat"
+              dropdownClassName="pi_col2-boosted-stat-dropdown"
+              isTextEditable={false}
+              showDropdownButton={true}
+              tabIndex={tabBase + 4}
+            />
+          )}
           {shouldShowBoostedStat && (
             <SearchableDropdown
               items={boostedStatOptions}
@@ -331,14 +383,14 @@ const PokemonInfoColumn2: React.FC<EditAreaProps> = ({ isAttacker }) => {
               dropdownClassName="pi_col2-boosted-stat-dropdown"
               isTextEditable={false}
               showDropdownButton={true}
-              tabIndex={tabBase + 4}
+              tabIndex={tabBase + 5}
             />
           )}
           {shouldShowIntimidateSwitch && (
             <div className="pi_col2-pokemon-intimidate-switch">
               <input
                 id={`intimidate-switch-${isAttacker ? "attacker" : "defender"}`}
-                tabIndex={tabBase + 5}
+                tabIndex={tabBase + 6}
                 type="checkbox"
                 className="pi_col2-switch-input"
                 checked={intimidateActived}
@@ -354,9 +406,11 @@ const PokemonInfoColumn2: React.FC<EditAreaProps> = ({ isAttacker }) => {
               ></label>
             </div>
           )}
-          {!shouldShowBoostedStat && !shouldShowIntimidateSwitch && (
+          {!shouldShowSupremeOverlordAlliesFainted &&
+            !shouldShowBoostedStat &&
+            !shouldShowIntimidateSwitch && (
             <div className="pi_col2-pokemon-boosted-stat" />
-          )}
+            )}
         </div>
       </div>
     </div>

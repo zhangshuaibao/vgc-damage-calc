@@ -66,6 +66,8 @@ interface PokemonStateContextType {
   // 特性
   ability: AbilityData | undefined;
   setAbility: (value: unknown) => void;
+  supremeOverlordAlliesFainted: number;
+  setSupremeOverlordAlliesFainted: (value: number) => void;
 
   // 道具
   item: ItemData | undefined;
@@ -340,6 +342,18 @@ const usePokemonStateLogic = (pokemonId: string): PokemonStateContextType => {
     if (ability?.name === "Intimidate") {
       setIntimidateActived(true);
       return;
+    }
+  }, [ability]);
+
+  const [supremeOverlordAlliesFainted, setSupremeOverlordAlliesFaintedState] =
+    useState<number>(0);
+  const setSupremeOverlordAlliesFainted = useCallback((value: number) => {
+    setSupremeOverlordAlliesFaintedState(Math.max(0, Math.min(5, value)));
+  }, []);
+
+  useEffect(() => {
+    if (ability?.name !== "Supreme Overlord") {
+      setSupremeOverlordAlliesFaintedState(0);
     }
   }, [ability]);
 
@@ -629,6 +643,10 @@ const usePokemonStateLogic = (pokemonId: string): PokemonStateContextType => {
       const displayPokemon = new Pokemon(gen, pokemonName, {
         level: level,
         ability: ability?.name,
+        alliesFainted:
+          ability?.name === "Supreme Overlord"
+            ? supremeOverlordAlliesFainted
+            : 0,
         item: item && item.name !== "(No Item)" ? item?.name : undefined,
         nature: nature?.name,
         teraType: isTera ? teraType : undefined,
@@ -658,6 +676,10 @@ const usePokemonStateLogic = (pokemonId: string): PokemonStateContextType => {
       const calcPokemon = new Pokemon(gen, pokemonName, {
         level: level,
         ability: ability?.name,
+        alliesFainted:
+          ability?.name === "Supreme Overlord"
+            ? supremeOverlordAlliesFainted
+            : 0,
         item: item && item.name !== "(No Item)" ? item?.name : undefined,
         nature: nature?.name,
         teraType: isTera ? teraType : undefined,
@@ -701,6 +723,7 @@ const usePokemonStateLogic = (pokemonId: string): PokemonStateContextType => {
     boosts,
     status,
     boostedStat,
+    supremeOverlordAlliesFainted,
     move1,
     move2,
     move3,
@@ -784,6 +807,7 @@ const usePokemonStateLogic = (pokemonId: string): PokemonStateContextType => {
           p.ability = ShowdownDataService.NoAbility.name as AbilityName;
         }
         setAbilityState(ShowdownDataService.getPokemonAbilityInfo(p.ability));
+        setSupremeOverlordAlliesFaintedState(p.alliesFainted || 0);
         if (!p.item) {
           p.item = ShowdownDataService.NoItem.name as ItemName;
         }
@@ -961,6 +985,7 @@ const usePokemonStateLogic = (pokemonId: string): PokemonStateContextType => {
     } as StatsExceptHPTable);
     setCurrentHP(undefined);
     setBoostedStat("inactive" as BoostedStatOption);
+    setSupremeOverlordAlliesFaintedState(0);
     setIntimidateActived(true);
     // setIntimidatedBoosts({
     //   atk: 0,
@@ -996,6 +1021,8 @@ const usePokemonStateLogic = (pokemonId: string): PokemonStateContextType => {
     setPokemonForme,
     ability,
     setAbility,
+    supremeOverlordAlliesFainted,
+    setSupremeOverlordAlliesFainted,
     item,
     setItem,
     teraType,
