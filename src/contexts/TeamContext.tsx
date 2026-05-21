@@ -754,6 +754,7 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
         setSlots(nextSlots.length > 0 ? nextSlots : [undefined]);
         setCurrentSavedTeam(undefined);
         if (firstPasteText) {
+          selectedSlotPasteTextRef.current = firstPasteText;
           lastImportedPasteTextRef.current = firstPasteText;
           setDisableAutoSelect(true);
           await importPokemonFromPasteText(firstPasteText);

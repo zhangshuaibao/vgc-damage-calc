@@ -751,6 +751,16 @@ const usePokemonStateLogic = (pokemonId: string): PokemonStateContextType => {
     async (text: string) => {
       try {
         if (!text) return false;
+        const rows = text.split("\n").map((row) => row.trim());
+        const hasExplicitEvs = rows.some((row) => /^EVs\s*:/i.test(row));
+        const hasExplicitNature = rows.some((row) => {
+          const parts = row.split(/\s+/);
+          return parts[0] !== "-" && parts[1] === "Nature";
+        });
+        if (!hasExplicitEvs || !hasExplicitNature) {
+          setDisableAutoSelect(true);
+          setMetaState(undefined);
+        }
         const list = Pokemon.importFromPasteText(currentGen, text, {
           useChampionsEVs: isChampionsGame,
         });

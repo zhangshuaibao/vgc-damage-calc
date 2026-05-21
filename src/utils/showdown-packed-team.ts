@@ -19,8 +19,8 @@ interface PackedPokemonSet {
 }
 
 export interface ExternalTeamImportPayload {
-  attacker?: string;
-  defender?: string;
+  attackerPackedTeam?: string;
+  defenderPackedTeam?: string;
   hasImportParams: boolean;
 }
 
@@ -235,12 +235,8 @@ export const readExternalPackedTeamHash = (): ExternalTeamImportPayload => {
     parseLabeledHashBlocks(parsedHash) ?? parseSingleHashBlock(parsedHash);
 
   return {
-    attacker: packedPayload.attacker
-      ? unpackPackedTeamToPasteText(packedPayload.attacker)
-      : undefined,
-    defender: packedPayload.defender
-      ? unpackPackedTeamToPasteText(packedPayload.defender)
-      : undefined,
+    attackerPackedTeam: packedPayload.attacker,
+    defenderPackedTeam: packedPayload.defender,
     hasImportParams: !!packedPayload.attacker || !!packedPayload.defender,
   };
 };

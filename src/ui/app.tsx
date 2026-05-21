@@ -10,7 +10,10 @@ import HeaderArea from "./components/00-HeaderArea/HeaderArea";
 import FormatsWidget from "./components/01-FormatsArea/FormatsWidget";
 import { GlobalEffectsProvider } from "../contexts/GlobalEffectsContext";
 import { PokemonUsageProvider } from "../contexts/PokemonUsageContext";
-import { readExternalPackedTeamHash } from "../utils/showdown-packed-team";
+import {
+  readExternalPackedTeamHash,
+  unpackPackedTeamToPasteText,
+} from "../utils/showdown-packed-team";
 const FieldArea = React.lazy(
   () => import("./components/04-FieldArea/FieldArea")
 );
@@ -189,14 +192,20 @@ const MainProviders = React.lazy(async () => {
 
         let importedAny = false;
 
-        if (importParams.attacker?.trim()) {
+        if (importParams.attackerPackedTeam?.trim()) {
+          const attackerPasteText = unpackPackedTeamToPasteText(
+            importParams.attackerPackedTeam,
+          );
           importedAny =
-            (await attackerTeam.importTeamFromText(importParams.attacker)) ||
+            (await attackerTeam.importTeamFromText(attackerPasteText)) ||
             importedAny;
         }
-        if (importParams.defender?.trim()) {
+        if (importParams.defenderPackedTeam?.trim()) {
+          const defenderPasteText = unpackPackedTeamToPasteText(
+            importParams.defenderPackedTeam,
+          );
           importedAny =
-            (await defenderTeam.importTeamFromText(importParams.defender)) ||
+            (await defenderTeam.importTeamFromText(defenderPasteText)) ||
             importedAny;
         }
 

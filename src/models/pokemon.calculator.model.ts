@@ -165,6 +165,16 @@ export class Pokemon extends CalculatorPokemon {
       const pokemonName = Pokemon.checkExceptions(rawName);
       if (!pokemonName || !SPECIES[gen][pokemonName]) continue;
 
+      let blockEnd = rows.length;
+      for (let j = i + 1; j < rows.length; j++) {
+        const nextRow = (rows[j] || "").trim();
+        if (!nextRow || Pokemon.isPokemonHeaderRow(gen, nextRow)) {
+          blockEnd = j;
+          break;
+        }
+      }
+      const blockRows = rows.slice(i, blockEnd);
+
       const currentPoke = new Pokemon(
         Generations.get(gen as GenerationNum),
         pokemonName,
@@ -177,9 +187,10 @@ export class Pokemon extends CalculatorPokemon {
       if (parsed?.gender) currentPoke.gender = parsed.gender as GenderName;
       currentPoke.nameProp = row;
 
-      Pokemon.parseStats(currentPoke, rows, i + 1, options);
-      Pokemon.parseMoves(currentPoke, rows, i);
+      Pokemon.parseStats(currentPoke, blockRows, 1, options);
+      Pokemon.parseMoves(currentPoke, blockRows, 0);
       pokemonList.push(currentPoke);
+      i = blockEnd - 1;
     }
     return pokemonList;
   }
@@ -253,6 +264,19 @@ export class Pokemon extends CalculatorPokemon {
     if (finalName === "") return undefined;
 
     return { name: finalName, item: itemStr as ItemName, gender };
+  }
+
+  private static isPokemonHeaderRow(gen: number, row: string): boolean {
+    if (!row || row.startsWith("-") || row.includes(":")) {
+      return false;
+    }
+    const parsed = Pokemon.parseNameAndItemFromRow(row);
+    const rawName = parsed?.name?.trim();
+    if (!rawName) {
+      return false;
+    }
+    const pokemonName = Pokemon.checkExceptions(rawName);
+    return !!pokemonName && !!SPECIES[gen][pokemonName];
   }
 
   /**
