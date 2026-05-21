@@ -70,8 +70,7 @@
 
   /* 伤害显示颜色配置（可按需自定义） */
   --damage-ko-color: #dc2626;
-  --damage-ko-color-middle: #0e0b0b;
-  --damage-ko-color-begin: #8f6b6b;
+  --damage-ko-color-begin: #c98a7c;
   --damage-impossible-color: var(--text-primary);
 }
 
@@ -150,7 +149,6 @@
 
   /* 伤害显示颜色配置（暗色主题默认值，可按需覆盖） */
   --damage-ko-color: var(--accent-danger);
-  --damage-ko-color-middle: ;
   --damage-ko-color-begin: #f0c6c6;
   --damage-impossible-color: var(--text-primary);
 }

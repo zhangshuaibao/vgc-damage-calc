@@ -1,12 +1,7 @@
 import React, { useState, useMemo } from "react";
 import "./DisplayDamage.css";
 import { useDamageCompute } from "../../../../contexts/DamageComputeContext";
-import { useTheme } from "../../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import {
-  getTypeColor,
-} from "../../../../utils/type.colors";
-import { getDamageColorFromChance } from "../../../../utils/damage.colors";
 
 interface DisplayDamageProps {
   className?: string;
@@ -14,30 +9,16 @@ interface DisplayDamageProps {
 
 export const DisplayDamage: React.FC<DisplayDamageProps> = ({ className }) => {
   const { isAttackerSelected, selectedResult } = useDamageCompute();
-  const { theme } = useTheme();
   const { t } = useTranslation(["app", "calc/damage_result"]);
   const [showSegments, setShowSegments] = useState(false);
   const descriptionTokens = useMemo(
     () => (selectedResult ? selectedResult.getFullDescTokens() : []),
     [selectedResult]
   );
-  const damageSummaryText = useMemo(
-    () => (selectedResult ? selectedResult.getDamageSummaryText() : ""),
+  const damageSummarySegments = useMemo(
+    () => (selectedResult ? selectedResult.getDamageSummarySegments() : []),
     [selectedResult]
   );
-  const damageSummaryParts = useMemo(() => {
-    if (!damageSummaryText) {
-      return { rangeText: "", suffixText: "" };
-    }
-    const separatorIndex = damageSummaryText.indexOf(" -- ");
-    if (separatorIndex < 0) {
-      return { rangeText: damageSummaryText, suffixText: "" };
-    }
-    return {
-      rangeText: damageSummaryText.slice(0, separatorIndex),
-      suffixText: damageSummaryText.slice(separatorIndex),
-    };
-  }, [damageSummaryText]);
   const hasSegments = useMemo(
     () => !!selectedResult && selectedResult.hasMultiSegmentDamage(),
     [selectedResult]
@@ -46,25 +27,6 @@ export const DisplayDamage: React.FC<DisplayDamageProps> = ({ className }) => {
     () => (hasSegments && selectedResult ? selectedResult.damage as number[][] : []),
     [hasSegments, selectedResult]
   );
-  const summaryColorInfo = useMemo(() => {
-    if (!selectedResult) {
-      return { color: undefined as string | undefined, className: "" };
-    }
-    const koChance = selectedResult.getOhkoChanceValue();
-    if (koChance === 1) {
-      return { color: undefined, className: "display-damage__summary--ko" };
-    }
-    if (koChance === 0) {
-      return {
-        color: undefined,
-        className: "display-damage__summary--impossible",
-      };
-    }
-    return {
-      color: getDamageColorFromChance(koChance),
-      className: "",
-    };
-  }, [selectedResult, theme]);
   const possibleDamageValues = useMemo(
     () => (selectedResult ? selectedResult.getPossibleDamageAmounts() : []),
     [selectedResult]
@@ -97,37 +59,10 @@ export const DisplayDamage: React.FC<DisplayDamageProps> = ({ className }) => {
     [hasSegments]
   );
 
-  const getPokemonTokenStyle = React.useCallback(
-    (pokemonTypes?: string[]): React.CSSProperties | undefined => {
-      if (!pokemonTypes || pokemonTypes.length === 0) {
-        return undefined;
-      }
-
-      if (pokemonTypes.length === 1) {
-        return {
-          backgroundImage: `linear-gradient(${getTypeColor(pokemonTypes[0])}, ${getTypeColor(pokemonTypes[0])})`,
-          backgroundPosition: "0 100%",
-          backgroundRepeat: "no-repeat",
-          backgroundSize: "100% 2px",
-        };
-      }
-
-      const primaryColor = getTypeColor(pokemonTypes[0]);
-      const secondaryColor = getTypeColor(pokemonTypes[1]);
-      return {
-        backgroundImage: `linear-gradient(90deg, ${primaryColor} 0%, ${primaryColor} 50%, ${secondaryColor} 50%, ${secondaryColor} 100%)`,
-        backgroundPosition: "0 100%",
-        backgroundRepeat: "no-repeat",
-        backgroundSize: "100% 2px",
-      };
-    },
-    []
-  );
-
   return (
     <div className={`display-damage ${className || ""}`}>
       {selectedResult &&
-      (descriptionTokens.length > 0 || damageSummaryText) ? (
+      (descriptionTokens.length > 0 || damageSummarySegments.length > 0) ? (
         <div
           className={`display-damage__description ${
             isAttackerSelected
@@ -136,60 +71,28 @@ export const DisplayDamage: React.FC<DisplayDamageProps> = ({ className }) => {
           }`}
         >
           {descriptionTokens.map((token, index) => {
-            const classNames = ["display-damage__token"];
-            if (token.kind === "evValue") {
-              classNames.push("display-damage__token--ev-value");
-            } else if (token.kind === "evPositive") {
-              classNames.push("display-damage__token--ev-positive");
-            } else if (token.kind === "evNegative") {
-              classNames.push("display-damage__token--ev-negative");
-            } else if (token.kind === "evLabel") {
-              classNames.push("display-damage__token--ev-label");
-            } else if (token.kind === "move") {
-              classNames.push("display-damage__token--move");
-            } else if (token.kind === "pokemon") {
-              classNames.push("display-damage__token--pokemon");
-            } else if (token.kind === "vs") {
-              classNames.push("display-damage__token--vs");
-            }
-
             return (
               <React.Fragment key={`${token.kind}-${token.text}-${index}`}>
                 {index > 0 ? " " : null}
-                <span
-                  className={classNames.join(" ")}
-                  style={
-                    token.kind === "move" && token.moveType
-                      ? { color: getTypeColor(token.moveType) }
-                      : token.kind === "pokemon"
-                        ? getPokemonTokenStyle(token.pokemonTypes)
-                        : undefined
-                  }
-                >
+                <span className={token.className} style={token.style}>
                   {token.text}
                 </span>
               </React.Fragment>
             );
           })}
-          {damageSummaryText ? (
+          {damageSummarySegments.length > 0 ? (
             <>
               {": "}
               <span className="display-damage__summary">
-                <span
-                  className={`display-damage__summary-range ${summaryColorInfo.className}`}
-                  style={
-                    summaryColorInfo.color
-                      ? { color: summaryColorInfo.color }
-                      : undefined
-                  }
-                >
-                  {damageSummaryParts.rangeText}
-                </span>
-                {damageSummaryParts.suffixText ? (
-                  <span className="display-damage__summary-suffix">
-                    {damageSummaryParts.suffixText}
+                {damageSummarySegments.map((segment, index) => (
+                  <span
+                    key={`summary-segment-${index}-${segment.text}`}
+                    className={segment.className}
+                    style={segment.style}
+                  >
+                    {segment.text}
                   </span>
-                ) : null}
+                ))}
               </span>
             </>
           ) : null}

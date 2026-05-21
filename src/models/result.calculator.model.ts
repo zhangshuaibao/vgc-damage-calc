@@ -8,6 +8,9 @@ import { t } from "i18next";
 import i18n, { Language } from "../i18n/i18n";
 import { translationService } from "../services/translation.service";
 import { Pokemon } from "./pokemon.calculator.model";
+import type { CSSProperties } from "react";
+import { getTypeColor } from "../utils/type.colors";
+import { getDamageColorFromChance } from "../utils/damage.colors";
 
 export interface ResultDescriptionToken {
   kind:
@@ -22,6 +25,14 @@ export interface ResultDescriptionToken {
   text: string;
   moveType?: string;
   pokemonTypes?: string[];
+  className?: string;
+  style?: CSSProperties;
+}
+
+export interface ResultDisplayTextSegment {
+  text: string;
+  className?: string;
+  style?: CSSProperties;
 }
 
 const championsActualEvToDisplayEv = (actualEv: number): number => {
@@ -127,21 +138,104 @@ export class Result extends CalculatorResult {
     moveType?: string,
     pokemonTypes?: string[],
   ): ResultDescriptionToken {
+    const classNames = ["display-damage__token"];
+    if (kind === "evValue") {
+      classNames.push("display-damage__token--ev-value");
+    } else if (kind === "evPositive") {
+      classNames.push("display-damage__token--ev-positive");
+    } else if (kind === "evNegative") {
+      classNames.push("display-damage__token--ev-negative");
+    } else if (kind === "evLabel") {
+      classNames.push("display-damage__token--ev-label");
+    } else if (kind === "move") {
+      classNames.push("display-damage__token--move");
+    } else if (kind === "pokemon") {
+      classNames.push("display-damage__token--pokemon");
+    } else if (kind === "vs") {
+      classNames.push("display-damage__token--vs");
+    }
+
+    let style: CSSProperties | undefined;
+    if (kind === "move" && moveType) {
+      style = { color: getTypeColor(moveType) };
+    } else if (kind === "pokemon") {
+      style = this.getPokemonTokenStyle(pokemonTypes);
+    }
+
     return {
       text,
       kind,
       ...(moveType ? { moveType } : {}),
       ...(pokemonTypes ? { pokemonTypes } : {}),
+      className: classNames.join(" "),
+      ...(style ? { style } : {}),
     };
   }
 
   private getPokemonTypes(
     pokemon?: Pokemon,
   ): string[] | undefined {
-    if (!pokemon?.types || pokemon.types.length === 0) {
+    if (!pokemon?.types?.length) {
       return undefined;
     }
     return pokemon.types.map((type) => type.toLowerCase());
+  }
+
+  private getPokemonTokenStyle(
+    pokemonTypes?: string[],
+  ): CSSProperties | undefined {
+    if (!pokemonTypes || pokemonTypes.length === 0) {
+      return undefined;
+    }
+
+    if (pokemonTypes.length === 1) {
+      const color = getTypeColor(pokemonTypes[0]);
+      return {
+        backgroundImage: `linear-gradient(${color}, ${color})`,
+        backgroundPosition: "0 100%",
+        backgroundRepeat: "no-repeat",
+        backgroundSize: "100% 2px",
+      };
+    }
+
+    const primaryColor = getTypeColor(pokemonTypes[0]);
+    const secondaryColor = getTypeColor(pokemonTypes[1]);
+    return {
+      backgroundImage: `linear-gradient(90deg, ${primaryColor} 0%, ${primaryColor} 50%, ${secondaryColor} 50%, ${secondaryColor} 100%)`,
+      backgroundPosition: "0 100%",
+      backgroundRepeat: "no-repeat",
+      backgroundSize: "100% 2px",
+    };
+  }
+
+  private getSummaryEmphasisTag(): {
+    className?: string;
+    style?: CSSProperties;
+  } {
+    const koChance = this.getOhkoChanceValue();
+    if (koChance === 1) {
+      return { className: "display-damage__summary--ko" };
+    }
+    if (koChance === 0) {
+      return { className: "display-damage__summary--impossible" };
+    }
+    return { style: { color: getDamageColorFromChance(koChance) } };
+  }
+
+  private createSummarySegment(
+    text: string,
+    baseClassName: string,
+    emphasize = false,
+  ): ResultDisplayTextSegment {
+    const emphasisTag = emphasize ? this.getSummaryEmphasisTag() : {};
+    const classNames = [baseClassName, emphasisTag.className]
+      .filter(Boolean)
+      .join(" ");
+    return {
+      text,
+      ...(classNames ? { className: classNames } : {}),
+      ...(emphasisTag.style ? { style: emphasisTag.style } : {}),
+    };
   }
 
   public getFullDescTokens(): ResultDescriptionToken[] {
@@ -340,21 +434,34 @@ export class Result extends CalculatorResult {
   }
 
   public getDamageSummaryText(): string {
+    return this.getDamageSummarySegments()
+      .map((segment) => segment.text)
+      .join("");
+  }
+
+  public getDamageSummarySegments(): ResultDisplayTextSegment[] {
+    const damageSegments: ResultDisplayTextSegment[] = [];
     const damageStrings2: string[] = [];
     if (this.damage != null && this.damage !== 0) {
       const range = this.range();
-      damageStrings2.push(
-        `${range[0]} - ${range[1]} (${(
-          (range[0] /
-            (this.defender.stats.hp *
-              (this.defender.isDynamaxed === true ? 2 : 1))) *
-          100
-        ).toFixed(2)}-${(
-          (range[1] /
-            (this.defender.stats.hp *
-              (this.defender.isDynamaxed === true ? 2 : 1))) *
-          100
-        ).toFixed(2)}%)`,
+      const rangeText = `${range[0]} - ${range[1]} (${(
+        (range[0] /
+          (this.defender.stats.hp *
+            (this.defender.isDynamaxed === true ? 2 : 1))) *
+        100
+      ).toFixed(2)}-${(
+        (range[1] /
+          (this.defender.stats.hp *
+            (this.defender.isDynamaxed === true ? 2 : 1))) *
+        100
+      ).toFixed(2)}%)`;
+      damageStrings2.push(rangeText);
+      damageSegments.push(
+        this.createSummarySegment(
+          rangeText,
+          "display-damage__summary-range",
+          true,
+        ),
       );
       const kochance = this.kochance();
       try {
@@ -368,22 +475,36 @@ export class Result extends CalculatorResult {
           } else {
             parts.push(koText);
           }
-          const koStr = [];
-          const part0 = this._getKoChangeDamageStrByPartText(parts[0]);
-          if (part0 !== "") {
-            koStr.push(part0);
+          const koSegments: ResultDisplayTextSegment[] = [];
+          const part0 = this.getKoChanceSegmentsByPartText(parts[0]);
+          if (part0.length > 0) {
+            koSegments.push(...part0);
           }
           if (parts.length > 1) {
-            const part1 = this._getKoChangeDamageStrByPartText(parts[1]);
+            const part1 = this.getKoChanceSegmentsByPartText(parts[1])
+              .map((segment) => segment.text)
+              .join("");
             if (part1 !== "") {
-              koStr.push(
-                t("damageResult.subtext").replaceAll("{{text}}", part1),
+              koSegments.push(
+                this.createSummarySegment(
+                  t("damageResult.subtext").replaceAll("{{text}}", part1),
+                  "display-damage__summary-suffix",
+                ),
               );
             }
           }
-          if (koStr.length > 0) {
+          if (koSegments.length > 0) {
             damageStrings2.push(" -- ");
-            damageStrings2.push(koStr.join(""));
+            damageSegments.push(
+              this.createSummarySegment(
+                " -- ",
+                "display-damage__summary-suffix",
+              ),
+            );
+            damageStrings2.push(
+              koSegments.map((segment) => segment.text).join(""),
+            );
+            damageSegments.push(...koSegments);
           }
         }
       } catch (e) {
@@ -395,23 +516,55 @@ export class Result extends CalculatorResult {
           kochance.n > 0
         ) {
           damageStrings2.push(` -- `);
+          damageSegments.push(
+            this.createSummarySegment(
+              " -- ",
+              "display-damage__summary-suffix",
+            ),
+          );
           if (kochance.chance === 1) {
-            damageStrings2.push(t("damageResult.kochance_guaranteed"));
+            const guaranteedText = t("damageResult.kochance_guaranteed");
+            damageStrings2.push(guaranteedText);
+            damageSegments.push(
+              this.createSummarySegment(
+                guaranteedText,
+                "display-damage__summary-suffix",
+                true,
+              ),
+            );
           } else {
-            damageStrings2.push(
-              t("damageResult.kochance_chance").replaceAll(
-                "{{chance}}",
-                `${(kochance.chance * 100).toFixed(2)}%`,
+            const chanceText = t("damageResult.kochance_chance").replaceAll(
+              "{{chance}}",
+              `${(kochance.chance * 100).toFixed(2)}%`,
+            );
+            damageStrings2.push(chanceText);
+            damageSegments.push(
+              this.createSummarySegment(
+                chanceText,
+                "display-damage__summary-suffix",
+                true,
               ),
             );
           }
           if (kochance.n === 1) {
-            damageStrings2.push(t("damageResult.kochance_ko_1"));
+            const koText = t("damageResult.kochance_ko_1");
+            damageStrings2.push(koText);
+            damageSegments.push(
+              this.createSummarySegment(
+                koText,
+                "display-damage__summary-suffix",
+              ),
+            );
           } else {
-            damageStrings2.push(
-              t("damageResult.kochance_ko_n").replaceAll(
-                "{{n}}",
-                kochance.n.toString(),
+            const koText = t("damageResult.kochance_ko_n").replaceAll(
+              "{{n}}",
+              kochance.n.toString(),
+            );
+            damageStrings2.push(koText);
+            damageSegments.push(
+              this.createSummarySegment(
+                koText,
+                "display-damage__summary-suffix",
               ),
             );
           }
@@ -442,10 +595,15 @@ export class Result extends CalculatorResult {
               const tran = t(tag);
               after_text_strings.push(tran === tag ? text : tran);
             }
-            damageStrings2.push(
-              t(`damageResult.chanceaftertext`).replaceAll(
-                "{{text}}",
-                after_text_strings.join(""),
+            const afterText = t(`damageResult.chanceaftertext`).replaceAll(
+              "{{text}}",
+              after_text_strings.join(""),
+            );
+            damageStrings2.push(afterText);
+            damageSegments.push(
+              this.createSummarySegment(
+                afterText,
+                "display-damage__summary-suffix",
               ),
             );
           }
@@ -453,7 +611,16 @@ export class Result extends CalculatorResult {
       }
     }
 
-    return damageStrings2.join("");
+    if (damageSegments.length === 0 && damageStrings2.length > 0) {
+      return [
+        this.createSummarySegment(
+          damageStrings2.join(""),
+          "display-damage__summary-range",
+        ),
+      ];
+    }
+
+    return damageSegments;
   }
 
   public getFullDescText(): string {
@@ -466,11 +633,14 @@ export class Result extends CalculatorResult {
       : descriptionText;
   }
 
-  _getKoChangeDamageStrByPartText(text: string): string {
+  private getKoChanceSegmentsByPartText(
+    text: string,
+  ): ResultDisplayTextSegment[] {
     if (text === "") {
-      return "";
+      return [];
     }
-    const chanceText = [];
+
+    const segments: ResultDisplayTextSegment[] = [];
     const parts = text.split(" after ");
     const hitsStr = parts[0].endsWith("HKO")
       ? parts[0].substring(parts[0].lastIndexOf(" ") + 1, parts[0].length - 3)
@@ -479,35 +649,65 @@ export class Result extends CalculatorResult {
 
     if (parts[0].startsWith("approx. ")) {
       parts[0] = parts[0].substring(8);
-      chanceText.push(t("damageResult.approx"));
+      segments.push(
+        this.createSummarySegment(
+          t("damageResult.approx"),
+          "display-damage__summary-suffix",
+        ),
+      );
     } else if (parts[0].startsWith("possible ")) {
       parts[0] = parts[0].substring(9);
-      chanceText.push(t("damageResult.possible"));
+      segments.push(
+        this.createSummarySegment(
+          t("damageResult.possible"),
+          "display-damage__summary-suffix",
+        ),
+      );
     }
+
     const chanceStr = parts[0].startsWith("guaranteed")
       ? "100"
       : parts[0].lastIndexOf("%") > -1
         ? parts[0].substring(0, parts[0].lastIndexOf("%"))
         : "-100";
     const chanceVal = Number(chanceStr.replaceAll("%", ""));
-    if (chanceVal === -100) {
-    } else if (chanceVal === 100) {
-      chanceText.push(t("damageResult.kochance_guaranteed"));
-    } else {
-      chanceText.push(
-        t("damageResult.kochance_chance").replaceAll(
-          "{{chance}}",
-          `${chanceVal}%`,
+    if (chanceVal === 100) {
+      segments.push(
+        this.createSummarySegment(
+          t("damageResult.kochance_guaranteed"),
+          "display-damage__summary-suffix",
+          true,
+        ),
+      );
+    } else if (chanceVal !== -100) {
+      segments.push(
+        this.createSummarySegment(
+          t("damageResult.kochance_chance").replaceAll(
+            "{{chance}}",
+            `${chanceVal}%`,
+          ),
+          "display-damage__summary-suffix",
+          true,
         ),
       );
     }
+
     if (hits === 1) {
-      chanceText.push(t("damageResult.kochance_ko_1"));
+      segments.push(
+        this.createSummarySegment(
+          t("damageResult.kochance_ko_1"),
+          "display-damage__summary-suffix",
+        ),
+      );
     } else {
-      chanceText.push(
-        t("damageResult.kochance_ko_n").replaceAll("{{n}}", hits.toString()),
+      segments.push(
+        this.createSummarySegment(
+          t("damageResult.kochance_ko_n").replaceAll("{{n}}", hits.toString()),
+          "display-damage__summary-suffix",
+        ),
       );
     }
+
     const after_index = text.indexOf("after ");
     if (after_index >= 0) {
       const after_text_strings: string[] = [];
@@ -531,14 +731,24 @@ export class Result extends CalculatorResult {
         const tran = t(tag);
         after_text_strings.push(tran === tag ? text : tran);
       }
-      chanceText.push(
-        t(`damageResult.chanceaftertext`).replaceAll(
-          "{{text}}",
-          after_text_strings.join(""),
+      segments.push(
+        this.createSummarySegment(
+          t(`damageResult.chanceaftertext`).replaceAll(
+            "{{text}}",
+            after_text_strings.join(""),
+          ),
+          "display-damage__summary-suffix",
         ),
       );
     }
-    return chanceText.join("");
+
+    return segments;
+  }
+
+  _getKoChangeDamageStrByPartText(text: string): string {
+    return this.getKoChanceSegmentsByPartText(text)
+      .map((segment) => segment.text)
+      .join("");
   }
 
   /**
