@@ -813,7 +813,9 @@ const usePokemonStateLogic = (pokemonId: string): PokemonStateContextType => {
         }
         setItemState(ShowdownDataService.getPokemonItemInfo(p.item));
         setIsTera(false);
-        setTeraType(p.teraType);
+        if (p.settingTeraType) {
+          setTeraType(p.settingTeraType);
+        }
         if (p.evs) setEvs(p.evs);
         if (p.ivs) setIvs(p.ivs);
         setMove1State(ShowdownDataService.getPokemonMoveInfo(p.moves?.[0]));

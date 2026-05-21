@@ -53,6 +53,7 @@ interface TeamState {
   loadSavedTeam: (teamId: string) => Promise<boolean>;
   deleteSavedTeam: (teamId: string) => Promise<boolean>;
   clearTeam: () => Promise<boolean>;
+  importTeamFromText: (text: string) => Promise<boolean>;
   exportTeamToClipboard: () => Promise<boolean>;
   importTeamFromClipboard: () => Promise<boolean>;
 }
@@ -223,7 +224,7 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
         pokemon?.item && pokemon.item !== ShowdownDataService.NoItem.name
           ? pokemon.item
           : undefined;
-      const teraTypeName = pokemon?.settingTeraType || pokemon?.teraType;
+      const teraTypeName = pokemon?.settingTeraType;
       return {
         id: existingId ?? createSlotId(),
         pasteText,
@@ -693,6 +694,41 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
     });
   };
 
+  const importTeamFromText = async (text: string): Promise<boolean> => {
+    if (!text.trim()) {
+      return false;
+    }
+    return await runExclusive(async () => {
+      try {
+        const pokemons = Pokemon.importFromPasteText(currentGen, text, {
+          useChampionsEVs: isChampionsGame,
+        });
+        if (!pokemons || pokemons.length === 0) return false;
+        const nextSlots: (TeamSlot | undefined)[] = pokemons
+          .slice(0, 6)
+          .map((pokemon) =>
+            buildSlotFromPasteText(
+              pokemon.exportToPasteText({
+                useChampionsEVs: isChampionsGame,
+              }),
+            ),
+          );
+        const firstPasteText = nextSlots[0]?.pasteText;
+        setSelectedIndex(0);
+        setSlots(nextSlots.length > 0 ? nextSlots : [undefined]);
+        setCurrentSavedTeam(undefined);
+        if (firstPasteText) {
+          lastImportedPasteTextRef.current = firstPasteText;
+          setDisableAutoSelect(true);
+          await importPokemonFromPasteText(firstPasteText);
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    });
+  };
+
   const exportTeamToClipboard = async (): Promise<boolean> => {
     const prevIndex = selectedIndex;
     const prevSaved = slots[prevIndex]?.pasteText;
@@ -817,6 +853,7 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
     loadSavedTeam,
     deleteSavedTeam,
     clearTeam,
+    importTeamFromText,
     exportTeamToClipboard,
     importTeamFromClipboard,
   };

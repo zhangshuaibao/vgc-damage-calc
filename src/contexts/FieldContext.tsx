@@ -67,6 +67,7 @@ interface FieldContextType {
 
   // 获取完整的Field对象
   getField: () => Field;
+  resetField: () => void;
 }
 
 interface FieldSideContextType {
@@ -85,6 +86,7 @@ interface FieldSideContextType {
 
   // 获取完整的Side对象
   getSide: () => Side;
+  resetSide: () => void;
 }
 
 // Context创建
@@ -131,6 +133,15 @@ export const FieldProvider: React.FC<FieldProviderProps> = ({ children }) => {
     return field;
   }, [gameType, weather, terrain, auraEffects, ruinEffects, spaceEffects]);
 
+  const resetField = useCallback((): void => {
+    setGameType("Doubles");
+    setWeather(undefined);
+    setTerrain(undefined);
+    setAuraEffects([]);
+    setRuinEffects([]);
+    setSpaceEffects([]);
+  }, []);
+
   const value: FieldContextType = {
     gameType,
     setGameType,
@@ -145,6 +156,7 @@ export const FieldProvider: React.FC<FieldProviderProps> = ({ children }) => {
     spaceEffects,
     setSpaceEffects,
     getField,
+    resetField,
   };
 
   return (
@@ -200,6 +212,12 @@ const useFieldSideLogic = (): FieldSideContextType => {
     return side;
   }, [sideEffects, wallEffects, spikesLayers]);
 
+  const resetSide = useCallback((): void => {
+    setSideEffects(new Set());
+    setWallEffects([]);
+    setSpikesLayers(undefined);
+  }, []);
+
   return {
     sideEffects,
     setSideEffects,
@@ -209,6 +227,7 @@ const useFieldSideLogic = (): FieldSideContextType => {
     spikesLayers,
     setSpikesLayers,
     getSide,
+    resetSide,
   };
 };
 

@@ -218,14 +218,19 @@ const PokemonInfoColumn1: React.FC<EditAreaProps> = ({ isAttacker }) => {
       return;
     }
     if (isAttacker && pokemonDropdownItems.length > 0) {
-      setPokemonUsageListUpdatedAttacker(true);
       const value = pokemonDropdownItems[0].value;
       setPokemonName(value);
+      setPokemonUsageListUpdatedAttacker(false);
     } else if (!isAttacker && pokemonDropdownItems.length > 1) {
-      setPokemonUsageListUpdatedDefender(true);
       setPokemonName(pokemonDropdownItems[1].value);
+      setPokemonUsageListUpdatedDefender(false);
     } else {
       setPokemonName(undefined);
+      if (isAttacker) {
+        setPokemonUsageListUpdatedAttacker(false);
+      } else {
+        setPokemonUsageListUpdatedDefender(false);
+      }
     }
   }, [pokemonDropdownItems]);
 

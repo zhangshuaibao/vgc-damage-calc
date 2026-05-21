@@ -11,6 +11,8 @@ import { ShowdownDataService } from "../services/showdown.data.service";
 import { showdownStatsService } from "../services/showdown.stats.service";
 
 const defaultGen = 9;
+const defaultGame = "Champions";
+ShowdownDataService.setCurrentGameEnv(defaultGame, defaultGen);
 
 export interface FormatsState {
   showdownFormats: ShowdownFormats | undefined;
@@ -86,7 +88,7 @@ const useFormatsData = (): UseFormatsDataReturn => {
   const [state, setState] = useState<FormatsState>({
     showdownFormats: undefined,
     currentGen: defaultGen,
-    currentGame: undefined,
+    currentGame: defaultGame,
     currentReg: undefined,
     currentMonthTag: undefined,
     currentRule: undefined,
@@ -232,7 +234,10 @@ const useFormatsData = (): UseFormatsDataReturn => {
           const currentGame =
             prev.currentGame && availableGames.includes(prev.currentGame)
               ? prev.currentGame
-              : getGameByReg(formats, prev.currentReg) || availableGames[0];
+              : getGameByReg(formats, prev.currentReg) ||
+                (availableGames.includes(defaultGame)
+                  ? defaultGame
+                  : availableGames[0]);
           const availableRegs = getRegListByGame(formats, currentGame);
           const currentReg =
             prev.currentReg && availableRegs.includes(prev.currentReg)

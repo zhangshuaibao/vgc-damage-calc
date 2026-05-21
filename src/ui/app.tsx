@@ -10,6 +10,7 @@ import HeaderArea from "./components/00-HeaderArea/HeaderArea";
 import FormatsWidget from "./components/01-FormatsArea/FormatsWidget";
 import { GlobalEffectsProvider } from "../contexts/GlobalEffectsContext";
 import { PokemonUsageProvider } from "../contexts/PokemonUsageContext";
+import { readExternalPackedTeamHash } from "../utils/showdown-packed-team";
 const FieldArea = React.lazy(
   () => import("./components/04-FieldArea/FieldArea")
 );
@@ -130,11 +131,111 @@ const AppContent: React.FC = () => {
 };
 
 export default AppPage;
+
+const EXTERNAL_IMPORT_WINDOW_NAME = "VGC Damage Calculator";
+
+const cleanExternalImportUrl = (): void => {
+  const url = new URL(window.location.href);
+  url.hash = "";
+  window.history.replaceState(null, "", url.toString());
+};
+
 const MainProviders = React.lazy(async () => {
   const Movesets = await import("../contexts/PokemonMovesetsContext");
   const State = await import("../contexts/PokemonStateContext");
   const FieldCtx = await import("../contexts/FieldContext");
   const TeamCtx = await import("../contexts/TeamContext");
+  const FormatsCtx = await import("../contexts/FormatsContext");
+  const UsageCtx = await import("../contexts/PokemonUsageContext");
+  const ExternalTeamImportBridge: React.FC = () => {
+    const attackerTeam = TeamCtx.useTeamState(true);
+    const defenderTeam = TeamCtx.useTeamState(false);
+    const field = FieldCtx.useField();
+    const attackerSide = FieldCtx.useFieldSide(true);
+    const defenderSide = FieldCtx.useFieldSide(false);
+    const formats = FormatsCtx.useFormats();
+    const pokemonUsage = UsageCtx.usePokemonUsage();
+    const lastImportedHashRef = React.useRef<string | undefined>(undefined);
+
+    React.useEffect(() => {
+      if (!window.name) {
+        window.name = EXTERNAL_IMPORT_WINDOW_NAME;
+      }
+    }, []);
+
+    React.useEffect(() => {
+      const applyExternalImport = async () => {
+        const currentHash = window.location.hash;
+        if (!currentHash || currentHash === lastImportedHashRef.current) {
+          return;
+        }
+        const formatsReady =
+          !formats.loading &&
+          !!formats.currentGame &&
+          !!formats.currentReg &&
+          !!formats.currentRule &&
+          !!formats.currentMonthTag &&
+          !!formats.currentCutline;
+        const usageReady = !pokemonUsage.loading;
+        const usageDefaultSelectionSettled =
+          !pokemonUsage.pokemonUsageListUpdatedAttacker &&
+          !pokemonUsage.pokemonUsageListUpdatedDefender;
+        if (!formatsReady || !usageReady || !usageDefaultSelectionSettled) {
+          return;
+        }
+        const importParams = readExternalPackedTeamHash();
+        if (!importParams.hasImportParams) {
+          return;
+        }
+        lastImportedHashRef.current = currentHash;
+
+        let importedAny = false;
+
+        if (importParams.attacker?.trim()) {
+          importedAny =
+            (await attackerTeam.importTeamFromText(importParams.attacker)) ||
+            importedAny;
+        }
+        if (importParams.defender?.trim()) {
+          importedAny =
+            (await defenderTeam.importTeamFromText(importParams.defender)) ||
+            importedAny;
+        }
+
+        if (importedAny) {
+          window.setTimeout(() => {
+            field.resetField();
+            attackerSide.resetSide();
+            defenderSide.resetSide();
+          }, 0);
+          cleanExternalImportUrl();
+        }
+      };
+
+      void applyExternalImport();
+      window.addEventListener("hashchange", applyExternalImport);
+      return () => {
+        window.removeEventListener("hashchange", applyExternalImport);
+      };
+    }, [
+      attackerTeam,
+      defenderTeam,
+      field,
+      attackerSide,
+      defenderSide,
+      formats.currentCutline,
+      formats.currentGame,
+      formats.currentMonthTag,
+      formats.currentReg,
+      formats.currentRule,
+      formats.loading,
+      pokemonUsage.loading,
+      pokemonUsage.pokemonUsageListUpdatedAttacker,
+      pokemonUsage.pokemonUsageListUpdatedDefender,
+    ]);
+
+    return null;
+  };
   const Comp: React.FC<React.PropsWithChildren<unknown>> = ({ children }) => (
     <Movesets.AttackerMovesetsProvider>
       <State.AttackerStateProvider>
@@ -145,7 +246,10 @@ const MainProviders = React.lazy(async () => {
                 <FieldCtx.FieldProvider>
                   <FieldCtx.FieldSideAttackerProvider>
                     <FieldCtx.FieldSideDefenderProvider>
-                      <GlobalEffectsProvider>{children}</GlobalEffectsProvider>
+                      <GlobalEffectsProvider>
+                        <ExternalTeamImportBridge />
+                        {children}
+                      </GlobalEffectsProvider>
                     </FieldCtx.FieldSideDefenderProvider>
                   </FieldCtx.FieldSideAttackerProvider>
                 </FieldCtx.FieldProvider>

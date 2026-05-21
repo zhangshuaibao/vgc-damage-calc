@@ -46,7 +46,7 @@ export const PokemonUsageProvider: React.FC<{ children: ReactNode }> = ({
     () => pokemonUsageListUpdated[1],
     [pokemonUsageListUpdated]
   );
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const lastParamsRef = useRef<string>("");
   const { currentReg, currentRule, currentMonthTag, currentCutline } =
@@ -55,6 +55,10 @@ export const PokemonUsageProvider: React.FC<{ children: ReactNode }> = ({
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
+      if (!currentReg || !currentRule || !currentMonthTag || !currentCutline) {
+        setLoading(true);
+        return;
+      }
       const paramsKey = `${currentReg || ""}-${currentRule || ""}-${currentMonthTag || ""}-${currentCutline || ""}`;
       if (lastParamsRef.current === paramsKey) {
         return;

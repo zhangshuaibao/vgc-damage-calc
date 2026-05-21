@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VG Calc External Import Test</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f7f2;
+        --panel: #ffffff;
+        --ink: #1f2520;
+        --muted: #657065;
+        --line: #d8dfd4;
+        --accent: #28785c;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 14px/1.5 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      main {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      h1 {
+        margin: 0 0 16px;
+        font-size: 22px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+
+      textarea,
+      input {
+        box-sizing: border-box;
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--panel);
+        color: var(--ink);
+        font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      textarea {
+        min-height: 480px;
+        padding: 12px;
+        resize: vertical;
+      }
+
+      input {
+        padding: 10px;
+      }
+
+      label {
+        display: block;
+        margin: 0 0 6px;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 16px 0;
+      }
+
+      button {
+        border: 1px solid var(--accent);
+        border-radius: 6px;
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 700;
+        padding: 9px 12px;
+      }
+
+      button.secondary {
+        background: transparent;
+        color: var(--accent);
+      }
+
+      .output {
+        display: grid;
+        gap: 8px;
+      }
+
+      @media (max-width: 800px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>VG Calc 外部 URL 导入测试</h1>
+      <div class="grid">
+        <section>
+          <label for="team1">1 己方队伍 pasteText</label>
+          <textarea id="team1">Charizard-Mega-Y @ Charizardite Y
+Level: 50
+Ability: Blaze
+EVs: 14 HP / 28 Def / 11 SpA / 13 Spe
+Modest Nature
+- Heat Wave
+- Solar Beam
+- Weather Ball
+- Protect
+
+Whimsicott @ Fairy Feather
+Level: 50
+Ability: Prankster
+EVs: 14 HP / 32 SpA / 20 Spe
+Timid Nature
+- Moonblast
+- Tailwind
+- Encore
+- Protect
+
+Kingambit @ Chople Berry
+Level: 50
+Ability: Defiant
+EVs: 32 HP / 32 Atk / 2 Spe
+Adamant Nature
+- Kowtow Cleave
+- Low Kick
+- Sucker Punch
+- Protect
+
+Basculegion @ Mystic Water
+Level: 50
+Ability: Adaptability
+EVs: 32 Atk / 14 Def / 2 SpD / 18 Spe
+Adamant Nature
+- Wave Crash
+- Last Respects
+- Aqua Jet
+- Protect
+
+Garchomp @ Sitrus Berry
+Level: 50
+Ability: Rough Skin
+EVs: 10 HP / 30 Atk / 4 Def / 22 Spe
+Jolly Nature
+- Dragon Claw
+- Earthquake
+- Rock Slide
+- Poison Jab
+
+Glimmora @ Focus Sash
+Level: 50
+Ability: Toxic Debris
+EVs: 1 HP / 32 SpA / 1 SpD / 32 Spe
+Modest Nature
+- Power Gem
+- Sludge Bomb
+- Earth Power
+- Spiky Shield</textarea>
+        </section>
+        <section>
+          <label for="team2">2 敌方队伍 pasteText</label>
+          <textarea id="team2">Lopunny-Mega @ Lopunnite
+Level: 50
+Ability: Cute Charm
+EVs: 5 HP / 29 Atk / 32 Spe
+Jolly Nature
+- Close Combat
+- Giga Impact
+- Fake Out
+- Encore
+
+Sylveon @ Fairy Feather
+Level: 50
+Ability: Pixilate
+EVs: 11 HP / 27 Def / 20 SpA / 8 Spe
+Modest Nature
+- Hyper Voice
+- Hyper Beam
+- Quick Attack
+- Detect
+
+Talonflame
+Level: 50
+Ability: Gale Wings
+EVs: 7 HP / 32 Atk / 27 Spe
+Adamant Nature
+- Acrobatics
+- Flare Blitz
+- Tailwind
+- Protect
+
+Basculegion @ Focus Sash
+Level: 50
+Ability: Adaptability
+EVs: 32 Atk / 2 Def / 32 Spe
+Adamant Nature
+- Liquidation
+- Last Respects
+- Aqua Jet
+- Protect
+
+Dragonite-Mega @ Dragoninite
+Level: 50
+Ability: Inner Focus
+EVs: 2 HP / 32 SpA / 32 Spe
+Modest Nature
+- Dragon Pulse
+- Air Slash
+- Extreme Speed
+- Protect
+
+Archaludon @ Choice Scarf
+Level: 50
+Ability: Sturdy
+EVs: 2 HP / 32 SpA / 32 Spe
+Modest Nature
+- Flash Cannon
+- Draco Meteor
+- Thunderbolt
+- Aura Sphere</textarea>
+        </section>
+      </div>
+
+      <div class="actions">
+        <button id="openBoth">导入双方</button>
+        <button id="openAttacker">只导入己方</button>
+        <button id="openDefender">只导入敌方</button>
+        <button id="openPlain" class="secondary">兼容 #packed 己方导入</button>
+      </div>
+
+      <div class="output">
+        <label for="urlOutput">生成的测试 URL</label>
+        <input id="urlOutput" readonly />
+      </div>
+    </main>
+
+    <script>
+      const statOrder = ["hp", "atk", "def", "spa", "spd", "spe"];
+      const statLabels = { HP: "hp", Atk: "atk", Def: "def", SpA: "spa", SpD: "spd", Spe: "spe" };
+      const targetWindowName = "VGC Damage Calculator";
+      if (window.name === targetWindowName) {
+        window.name = "vg-calc-external-import-test";
+      }
+
+      function packName(name) {
+        return (name || "").replace(/[^A-Za-z0-9]+/g, "");
+      }
+
+      function parseFirstLine(line) {
+        let item = "";
+        let nameArea = line.trim();
+        const itemIndex = nameArea.lastIndexOf(" @ ");
+        if (itemIndex >= 0) {
+          item = nameArea.slice(itemIndex + 3).trim();
+          nameArea = nameArea.slice(0, itemIndex).trim();
+        }
+        let gender = "";
+        if (nameArea.endsWith(" (M)") || nameArea.endsWith(" (F)")) {
+          gender = nameArea.slice(-2, -1);
+          nameArea = nameArea.slice(0, -4).trim();
+        }
+        const speciesMatch = nameArea.match(/^(.*?)\s+\((.*?)\)$/);
+        return {
+          name: speciesMatch ? speciesMatch[1].trim() : "",
+          species: speciesMatch ? speciesMatch[2].trim() : nameArea,
+          item,
+          gender,
+        };
+      }
+
+      function parseStats(line, defaultValue) {
+        const stats = { hp: defaultValue, atk: defaultValue, def: defaultValue, spa: defaultValue, spd: defaultValue, spe: defaultValue };
+        for (const part of line.split("/")) {
+          const match = part.trim().match(/^(\d+)\s+(\S+)$/);
+          if (match && statLabels[match[2]]) {
+            stats[statLabels[match[2]]] = Number(match[1]);
+          }
+        }
+        return stats;
+      }
+
+      function statsToPacked(stats, defaultValue) {
+        if (!stats) return "";
+        return statOrder.map((stat) => stats[stat] === defaultValue ? "" : String(stats[stat] || 0)).join(",");
+      }
+
+      function parseSet(text) {
+        const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+        const first = parseFirstLine(lines[0] || "");
+        const set = { ...first, ability: "", moves: [], nature: "", evs: undefined, ivs: undefined, level: "", teraType: "" };
+        for (const line of lines.slice(1)) {
+          if (line.startsWith("Ability: ")) set.ability = line.slice(9).trim();
+          else if (line.startsWith("Level: ")) set.level = line.slice(7).trim();
+          else if (line.startsWith("Tera Type: ")) set.teraType = line.slice(11).trim();
+          else if (line.startsWith("EVs: ")) set.evs = parseStats(line.slice(5), 0);
+          else if (line.startsWith("IVs: ")) set.ivs = parseStats(line.slice(5), 31);
+          else if (line.endsWith(" Nature")) set.nature = line.slice(0, -" Nature".length).trim();
+          else if (line.startsWith("- ")) set.moves.push(line.slice(2).trim());
+        }
+        return set;
+      }
+
+      function packSet(set) {
+        return [
+          packName(set.name),
+          packName(set.species),
+          packName(set.item),
+          packName(set.ability),
+          set.moves.map(packName).join(","),
+          packName(set.nature),
+          statsToPacked(set.evs, 0),
+          set.gender || "",
+          statsToPacked(set.ivs, 31),
+          "",
+          set.level || "",
+          set.teraType ? `,,,,,${packName(set.teraType)}` : "",
+        ].join("|");
+      }
+
+      function packTeam(text) {
+        return text.trim().split(/\n\s*\n/).map(parseSet).map(packSet).join("]");
+      }
+
+      function appUrl(hashPayload) {
+        const url = new URL("./", window.location.href);
+        url.hash = encodeURIComponent(hashPayload);
+        return url.toString();
+      }
+
+      function openUrl(hashPayload) {
+        const url = appUrl(hashPayload);
+        document.getElementById("urlOutput").value = url;
+        window.open(url, targetWindowName);
+      }
+
+      document.getElementById("openBoth").addEventListener("click", () => {
+        openUrl(`1\n${packTeam(document.getElementById("team1").value)}\n2\n${packTeam(document.getElementById("team2").value)}`);
+      });
+      document.getElementById("openAttacker").addEventListener("click", () => {
+        openUrl(`1${packTeam(document.getElementById("team1").value)}`);
+      });
+      document.getElementById("openDefender").addEventListener("click", () => {
+        openUrl(`2${packTeam(document.getElementById("team2").value)}`);
+      });
+      document.getElementById("openPlain").addEventListener("click", () => {
+        openUrl(packTeam(document.getElementById("team1").value));
+      });
+    </script>
+  </body>
+</html>
