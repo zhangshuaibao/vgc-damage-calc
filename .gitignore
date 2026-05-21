@@ -10,6 +10,7 @@
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
@@ -29,4 +30,5 @@ yarn-error.log*
 src/vendors
 flutter_version
 
-docker-run.sh
+docker-run-web.sh
+docker-run-api.sh

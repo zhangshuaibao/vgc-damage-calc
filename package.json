@@ -28,6 +28,8 @@
   },
   "scripts": {
     "start": "REACT_APP_VERSION=dev craco start",
+    "api:build": "tsc -p api/tsconfig.json",
+    "api": "node dist/api/calc-server.js",
     "build": "REACT_APP_VERSION=$(date +%Y%m%d%H%M%S) GENERATE_SOURCEMAP=false PUBLIC_URL=/calc craco build",
     "test": "REACT_APP_VERSION=test craco test"
   },
