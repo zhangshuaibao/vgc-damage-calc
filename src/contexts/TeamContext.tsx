@@ -208,6 +208,50 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
     return `${side}-team-slot-${nextId}`;
   }, [side]);
 
+  const normalizePasteText = useCallback(
+    (pasteText?: string): string | undefined => {
+      const trimmedText = pasteText?.trim();
+      if (!trimmedText) {
+        return undefined;
+      }
+      try {
+        const pokemon = Pokemon.importFromPasteText(currentGen, trimmedText, {
+          useChampionsEVs: isChampionsGame,
+        })[0];
+        return (
+          pokemon?.exportToPasteText({
+            useChampionsEVs: isChampionsGame,
+          })?.trim() || trimmedText
+        );
+      } catch {
+        return trimmedText;
+      }
+    },
+    [currentGen, isChampionsGame],
+  );
+
+  const getCurrentExportedPasteText = useCallback((): string | undefined => {
+    return (
+      displayPokemon
+        ?.exportToPasteText({
+          useChampionsEVs: isChampionsGame,
+        })
+        ?.trim() || undefined
+    );
+  }, [displayPokemon, isChampionsGame]);
+
+  const hasCurrentPokemonChanged = useCallback(
+    (savedText?: string): boolean => {
+      const currentText = getCurrentExportedPasteText();
+      const normalizedSavedText = normalizePasteText(savedText);
+      if (!currentText) {
+        return false;
+      }
+      return currentText !== normalizedSavedText;
+    },
+    [getCurrentExportedPasteText, normalizePasteText],
+  );
+
   const buildSlotFromPasteText = (
     pasteText?: string,
     existingId?: string,
@@ -301,11 +345,9 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
   const ensureSaveCurrentIfDirty = async (): Promise<
     SaveEditResponse | "none"
   > => {
-    const currentText = displayPokemon?.exportToPasteText({
-      useChampionsEVs: isChampionsGame,
-    });
+    const currentText = getCurrentExportedPasteText();
     const savedText = slots[selectedIndex]?.pasteText;
-    if (currentText && currentText !== savedText) {
+    if (currentText && hasCurrentPokemonChanged(savedText)) {
       const action = await confirm<SaveEditResponse>({
         messageKey: "team.confirmSavePaste.message",
         buttons: [
@@ -438,10 +480,8 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
       isApplyingSelectedSlotRef.current = true;
       const prevIndex = selectedIndex;
       const prevSaved = slots[prevIndex]?.pasteText;
-      const currentText = displayPokemon?.exportToPasteText({
-        useChampionsEVs: isChampionsGame,
-      });
-      if (currentText && currentText !== prevSaved) {
+      const currentText = getCurrentExportedPasteText();
+      if (currentText && hasCurrentPokemonChanged(prevSaved)) {
         const decision = await ensureSaveCurrentIfDirty();
         if (decision === "edit") {
           isApplyingSelectedSlotRef.current = false;
@@ -474,11 +514,9 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
     enqueueExclusive(async () => {
       const prevIndex = selectedIndex;
       const prevSaved = slots[prevIndex]?.pasteText;
-      const currentText = displayPokemon?.exportToPasteText({
-        useChampionsEVs: isChampionsGame,
-      });
+      const currentText = getCurrentExportedPasteText();
       if (!currentText && !prevSaved) return;
-      if (currentText && currentText !== prevSaved) {
+      if (currentText && hasCurrentPokemonChanged(prevSaved)) {
         const decision = await ensureSaveCurrentIfDirty();
         if (decision === "edit") {
           return;
@@ -634,10 +672,8 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
     }
 
     const prevSaved = slots[selectedIndex]?.pasteText;
-    const currentText = displayPokemon?.exportToPasteText({
-      useChampionsEVs: isChampionsGame,
-    });
-    if (currentText && currentText !== prevSaved) {
+    const currentText = getCurrentExportedPasteText();
+    if (currentText && hasCurrentPokemonChanged(prevSaved)) {
       const shouldDiscard = await confirm<boolean>({
         messageKey: "pokemon.confirmImportDiscard.message",
         buttons: [
@@ -732,11 +768,9 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
   const exportTeamToClipboard = async (): Promise<boolean> => {
     const prevIndex = selectedIndex;
     const prevSaved = slots[prevIndex]?.pasteText;
-    const currentText = displayPokemon?.exportToPasteText({
-      useChampionsEVs: isChampionsGame,
-    });
+    const currentText = getCurrentExportedPasteText();
     let decision: SaveEditResponse | "none" = "none";
-    if (currentText && currentText !== prevSaved) {
+    if (currentText && hasCurrentPokemonChanged(prevSaved)) {
       decision = await ensureSaveCurrentIfDirty();
       if (decision === "edit") {
         return false;
@@ -787,10 +821,8 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
   const importTeamFromClipboard = async (): Promise<boolean> => {
     const prevIndex = selectedIndex;
     const prevSaved = slots[prevIndex]?.pasteText;
-    const currentText = displayPokemon?.exportToPasteText({
-      useChampionsEVs: isChampionsGame,
-    });
-    if (currentText && currentText !== prevSaved) {
+    const currentText = getCurrentExportedPasteText();
+    if (currentText && hasCurrentPokemonChanged(prevSaved)) {
       const shouldDiscard = await confirm<boolean>({
         messageKey: "pokemon.confirmImportDiscard.message",
         buttons: [

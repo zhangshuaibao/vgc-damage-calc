@@ -123,7 +123,7 @@ const exportSet = (set: PackedPokemonSet): string => {
   if (set.ability) {
     lines.push(`Ability: ${set.ability}`);
   }
-  lines.push(`Level: ${set.level ?? 100}`);
+  lines.push(`Level: ${set.level ?? 50}`);
   if (set.shiny) {
     lines.push("Shiny: Yes");
   }

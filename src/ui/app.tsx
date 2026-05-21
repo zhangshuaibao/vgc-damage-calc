@@ -132,7 +132,7 @@ const AppContent: React.FC = () => {
 
 export default AppPage;
 
-const EXTERNAL_IMPORT_WINDOW_NAME = "VGC Damage Calculator";
+const EXTERNAL_IMPORT_WINDOW_NAME = "vgc-damage-calculator";
 
 const cleanExternalImportUrl = (): void => {
   const url = new URL(window.location.href);
@@ -158,9 +158,7 @@ const MainProviders = React.lazy(async () => {
     const lastImportedHashRef = React.useRef<string | undefined>(undefined);
 
     React.useEffect(() => {
-      if (!window.name) {
-        window.name = EXTERNAL_IMPORT_WINDOW_NAME;
-      }
+      window.name = EXTERNAL_IMPORT_WINDOW_NAME;
     }, []);
 
     React.useEffect(() => {

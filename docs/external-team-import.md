@@ -13,7 +13,7 @@ https://pokestats.top/calc/
 推荐使用固定窗口名打开：
 
 ```js
-window.open(url, "VGC Damage Calculator");
+window.open(url, "vgc-damage-calculator");
 ```
 
 这样可以复用已经打开的计算器窗口；如果没有已打开的计算器窗口，浏览器会新建一个标签页。
@@ -63,7 +63,7 @@ ${packed1}
 2
 ${packed2}`);
 
-window.open(url, "VGC Damage Calculator");
+window.open(url, "vgc-damage-calculator");
 ```
 
 ## packed team 格式
@@ -108,7 +108,7 @@ const packed =
 
 window.open(
   "https://pokestats.top/calc/#" + encodeURIComponent(packed),
-  "VGC Damage Calculator",
+  "vgc-damage-calculator",
 );
 ```
 
@@ -120,7 +120,7 @@ const packed =
 
 window.open(
   "https://pokestats.top/calc/#" + encodeURIComponent(`2${packed}`),
-  "VGC Damage Calculator",
+  "vgc-damage-calculator",
 );
 ```
 
@@ -139,7 +139,7 @@ ${defenderPacked}`;
 
 window.open(
   "https://pokestats.top/calc/#" + encodeURIComponent(hash),
-  "VGC Damage Calculator",
+  "vgc-damage-calculator",
 );
 ```
 
