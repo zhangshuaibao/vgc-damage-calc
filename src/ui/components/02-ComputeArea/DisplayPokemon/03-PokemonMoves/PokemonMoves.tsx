@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import "./PokemonMoves.css";
 import { usePokemonState } from "../../../../../contexts/PokemonStateContext";
 import { useDamageCompute } from "../../../../../contexts/DamageComputeContext";
+import { useTheme } from "../../../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { getTypeColor } from "../../../../../utils/type.colors";
 import { getDamageColorFromChance } from "../../../../../utils/damage.colors";
@@ -29,6 +30,7 @@ export const PokemonMoves: React.FC<PokemonMovesProps> = ({
     attackerSideResults,
     defenderSideResults,
   } = useDamageCompute();
+  const { theme } = useTheme();
 
   const { translateMove } = usePokemonTranslation();
   const { t } = useTranslation();
@@ -115,7 +117,7 @@ export const PokemonMoves: React.FC<PokemonMovesProps> = ({
 
       return { text, color, className };
     });
-  }, [moves, isAttacker, attackerSideResults, defenderSideResults]);
+  }, [moves, isAttacker, attackerSideResults, defenderSideResults, theme]);
 
   const {
     move1z,

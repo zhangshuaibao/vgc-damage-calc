@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import "./DisplayDamage.css";
 import { useDamageCompute } from "../../../../contexts/DamageComputeContext";
+import { useTheme } from "../../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import {
   getTypeColor,
@@ -13,6 +14,7 @@ interface DisplayDamageProps {
 
 export const DisplayDamage: React.FC<DisplayDamageProps> = ({ className }) => {
   const { isAttackerSelected, selectedResult } = useDamageCompute();
+  const { theme } = useTheme();
   const { t } = useTranslation(["app", "calc/damage_result"]);
   const [showSegments, setShowSegments] = useState(false);
   const descriptionTokens = useMemo(
@@ -62,7 +64,7 @@ export const DisplayDamage: React.FC<DisplayDamageProps> = ({ className }) => {
       color: getDamageColorFromChance(koChance),
       className: "",
     };
-  }, [selectedResult]);
+  }, [selectedResult, theme]);
   const possibleDamageValues = useMemo(
     () => (selectedResult ? selectedResult.getPossibleDamageAmounts() : []),
     [selectedResult]
