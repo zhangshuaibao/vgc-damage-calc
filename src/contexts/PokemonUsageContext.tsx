@@ -2,6 +2,7 @@ import React, {
   createContext,
   useContext,
   useEffect,
+  useCallback,
   useRef,
   useState,
   ReactNode,
@@ -13,6 +14,7 @@ import { useFormats } from "./FormatsContext";
 
 interface PokemonUsageContextType {
   pokemonUsageList: PokemonUsage[];
+  pokemonUsageParamsKey: string;
   pokemonUsageListUpdatedAttacker: boolean;
   pokemonUsageListUpdatedDefender: boolean;
   setPokemonUsageListUpdatedAttacker: (updated: boolean) => void;
@@ -29,15 +31,16 @@ export const PokemonUsageProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [pokemonUsageList, setPokemonUsageList] = useState<PokemonUsage[]>([]);
+  const [pokemonUsageParamsKey, setPokemonUsageParamsKey] = useState("");
   const [pokemonUsageListUpdated, setPokemonUsageListUpdatedState] = useState<
     boolean[]
   >([false, false]);
-  const setPokemonUsageListUpdatedAttacker = (updated: boolean) => {
-    setPokemonUsageListUpdatedState([updated, pokemonUsageListUpdated[1]]);
-  };
-  const setPokemonUsageListUpdatedDefender = (updated: boolean) => {
-    setPokemonUsageListUpdatedState([pokemonUsageListUpdated[0], updated]);
-  };
+  const setPokemonUsageListUpdatedAttacker = useCallback((updated: boolean) => {
+    setPokemonUsageListUpdatedState((prev) => [updated, prev[1]]);
+  }, []);
+  const setPokemonUsageListUpdatedDefender = useCallback((updated: boolean) => {
+    setPokemonUsageListUpdatedState((prev) => [prev[0], updated]);
+  }, []);
   const pokemonUsageListUpdatedAttacker = useMemo(
     () => pokemonUsageListUpdated[0],
     [pokemonUsageListUpdated]
@@ -59,7 +62,12 @@ export const PokemonUsageProvider: React.FC<{ children: ReactNode }> = ({
         setLoading(true);
         return;
       }
-      const paramsKey = `${currentReg || ""}-${currentRule || ""}-${currentMonthTag || ""}-${currentCutline || ""}`;
+      const paramsKey = JSON.stringify([
+        currentReg || "",
+        currentRule || "",
+        currentMonthTag || "",
+        currentCutline || "",
+      ]);
       if (lastParamsRef.current === paramsKey) {
         return;
       }
@@ -76,6 +84,7 @@ export const PokemonUsageProvider: React.FC<{ children: ReactNode }> = ({
         );
         if (!cancelled) {
           setPokemonUsageList(usageData);
+          setPokemonUsageParamsKey(paramsKey);
           setPokemonUsageListUpdatedState([true, true]);
         }
       } catch (err) {
@@ -86,6 +95,7 @@ export const PokemonUsageProvider: React.FC<{ children: ReactNode }> = ({
               : "errors.pokemonUsageFetchFailed"
           );
           setPokemonUsageList([]);
+          setPokemonUsageParamsKey(paramsKey);
           setPokemonUsageListUpdatedState([true, true]);
         }
       } finally {
@@ -102,6 +112,7 @@ export const PokemonUsageProvider: React.FC<{ children: ReactNode }> = ({
 
   const value: PokemonUsageContextType = {
     pokemonUsageList,
+    pokemonUsageParamsKey,
     pokemonUsageListUpdatedAttacker,
     pokemonUsageListUpdatedDefender,
     setPokemonUsageListUpdatedAttacker,

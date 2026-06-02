@@ -56,6 +56,7 @@ interface TeamState {
   importTeamFromText: (text: string) => Promise<boolean>;
   exportTeamToClipboard: () => Promise<boolean>;
   importTeamFromClipboard: () => Promise<boolean>;
+  hasUnsavedCurrentPokemonChanges: () => boolean;
 }
 
 const AttackerTeamContext = createContext<TeamState | undefined>(undefined);
@@ -251,6 +252,10 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
     },
     [getCurrentExportedPasteText, normalizePasteText],
   );
+
+  const hasUnsavedCurrentPokemonChanges = useCallback((): boolean => {
+    return hasCurrentPokemonChanged(slots[selectedIndex]?.pasteText);
+  }, [hasCurrentPokemonChanged, selectedIndex, slots]);
 
   const buildSlotFromPasteText = (
     pasteText?: string,
@@ -671,29 +676,6 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
       return false;
     }
 
-    const prevSaved = slots[selectedIndex]?.pasteText;
-    const currentText = getCurrentExportedPasteText();
-    if (currentText && hasCurrentPokemonChanged(prevSaved)) {
-      const shouldDiscard = await confirm<boolean>({
-        messageKey: "pokemon.confirmImportDiscard.message",
-        buttons: [
-          {
-            labelKey: "pokemon.confirmImportDiscard.discard",
-            value: true,
-            tone: "danger",
-          },
-          {
-            labelKey: "pokemon.confirmImportDiscard.cancel",
-            value: false,
-            tone: "default",
-          },
-        ],
-      });
-      if (!shouldDiscard) {
-        return false;
-      }
-    }
-
     return await runExclusive(async () => {
       const nextSlots = team.pasteTexts
         .slice(0, 6)
@@ -821,28 +803,6 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
 
   const importTeamFromClipboard = async (): Promise<boolean> => {
     const prevIndex = selectedIndex;
-    const prevSaved = slots[prevIndex]?.pasteText;
-    const currentText = getCurrentExportedPasteText();
-    if (currentText && hasCurrentPokemonChanged(prevSaved)) {
-      const shouldDiscard = await confirm<boolean>({
-        messageKey: "pokemon.confirmImportDiscard.message",
-        buttons: [
-          {
-            labelKey: "pokemon.confirmImportDiscard.discard",
-            value: true,
-            tone: "danger",
-          },
-          {
-            labelKey: "pokemon.confirmImportDiscard.cancel",
-            value: false,
-            tone: "default",
-          },
-        ],
-      });
-      if (!shouldDiscard) {
-        return false;
-      }
-    }
     const text =
       navigator.clipboard && navigator.clipboard.readText
         ? await navigator.clipboard.readText()
@@ -889,6 +849,7 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
     importTeamFromText,
     exportTeamToClipboard,
     importTeamFromClipboard,
+    hasUnsavedCurrentPokemonChanges,
   };
 };
 

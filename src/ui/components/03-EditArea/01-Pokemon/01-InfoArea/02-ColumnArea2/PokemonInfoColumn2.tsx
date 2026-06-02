@@ -309,7 +309,14 @@ const PokemonInfoColumn2: React.FC<EditAreaProps> = ({ isAttacker }) => {
     } else {
       setAbility(undefined);
     }
-  }, [abilityDropdownItems]);
+  }, [
+    abilitiesUsageListUpdated,
+    ability,
+    abilityDropdownItems,
+    pokemonSpecies,
+    setAbility,
+    setAbilitiesUsageListUpdated,
+  ]);
 
   return (
     <div>

@@ -7,7 +7,9 @@ import { LanguageProvider, useLanguage } from "../contexts/LanguageContext";
 import { ContextAwareConfirmation } from "react-confirm";
 import { FormatsProvider } from "../contexts/FormatsContext";
 import HeaderArea from "./components/00-HeaderArea/HeaderArea";
-import FormatsWidget from "./components/01-FormatsArea/FormatsWidget";
+import FormatsWidget, {
+  MANUAL_FORMATS_CHANGE_EVENT,
+} from "./components/01-FormatsArea/FormatsWidget";
 import { GlobalEffectsProvider } from "../contexts/GlobalEffectsContext";
 import { PokemonUsageProvider } from "../contexts/PokemonUsageContext";
 import {
@@ -158,6 +160,27 @@ const MainProviders = React.lazy(async () => {
     const defenderSide = FieldCtx.useFieldSide(false);
     const formats = FormatsCtx.useFormats();
     const pokemonUsage = UsageCtx.usePokemonUsage();
+    const attackerMovesets = Movesets.usePokemonMovesets(true);
+    const defenderMovesets = Movesets.usePokemonMovesets(false);
+    const {
+      loading: pokemonUsageLoading,
+      setPokemonUsageListUpdatedAttacker,
+      setPokemonUsageListUpdatedDefender,
+    } = pokemonUsage;
+    const {
+      setItemsUsageListUpdated: setAttackerItemsUsageListUpdated,
+      setMovesUsageListUpdated: setAttackerMovesUsageListUpdated,
+      setTeratypesUsageListUpdated: setAttackerTeratypesUsageListUpdated,
+      setAbilitiesUsageListUpdated: setAttackerAbilitiesUsageListUpdated,
+      setMetaBuildsUsageListUpdated: setAttackerMetaBuildsUsageListUpdated,
+    } = attackerMovesets;
+    const {
+      setItemsUsageListUpdated: setDefenderItemsUsageListUpdated,
+      setMovesUsageListUpdated: setDefenderMovesUsageListUpdated,
+      setTeratypesUsageListUpdated: setDefenderTeratypesUsageListUpdated,
+      setAbilitiesUsageListUpdated: setDefenderAbilitiesUsageListUpdated,
+      setMetaBuildsUsageListUpdated: setDefenderMetaBuildsUsageListUpdated,
+    } = defenderMovesets;
     const lastImportedHashRef = React.useRef<string | undefined>(undefined);
 
     React.useEffect(() => {
@@ -165,9 +188,32 @@ const MainProviders = React.lazy(async () => {
     }, []);
 
     React.useEffect(() => {
-      const applyExternalImport = async () => {
+      const clearTeamsOnManualFormatsChange = () => {
+        void Promise.all([
+          attackerTeam.clearTeam(),
+          defenderTeam.clearTeam(),
+        ]);
+      };
+      window.addEventListener(
+        MANUAL_FORMATS_CHANGE_EVENT,
+        clearTeamsOnManualFormatsChange,
+      );
+      return () => {
+        window.removeEventListener(
+          MANUAL_FORMATS_CHANGE_EVENT,
+          clearTeamsOnManualFormatsChange,
+        );
+      };
+    }, [attackerTeam, defenderTeam]);
+
+    React.useEffect(() => {
+      const applyExternalImport = () => {
         const currentHash = window.location.hash;
         if (!currentHash || currentHash === lastImportedHashRef.current) {
+          return;
+        }
+        const importParams = readExternalPackedTeamHash();
+        if (!importParams.hasImportParams) {
           return;
         }
         const formatsReady =
@@ -177,46 +223,64 @@ const MainProviders = React.lazy(async () => {
           !!formats.currentRule &&
           !!formats.currentMonthTag &&
           !!formats.currentCutline;
-        const usageReady = !pokemonUsage.loading;
-        const usageDefaultSelectionSettled =
-          !pokemonUsage.pokemonUsageListUpdatedAttacker &&
-          !pokemonUsage.pokemonUsageListUpdatedDefender;
-        if (!formatsReady || !usageReady || !usageDefaultSelectionSettled) {
+        const usageReady = !pokemonUsageLoading;
+        if (!formatsReady || !usageReady) {
           return;
         }
-        const importParams = readExternalPackedTeamHash();
-        if (!importParams.hasImportParams) {
+        const attackerPackedTeam = importParams.attackerPackedTeam?.trim();
+        const defenderPackedTeam = importParams.defenderPackedTeam?.trim();
+        if (!attackerPackedTeam && !defenderPackedTeam) {
           return;
         }
         lastImportedHashRef.current = currentHash;
 
-        let importedAny = false;
-
-        if (importParams.attackerPackedTeam?.trim()) {
-          const attackerPasteText = unpackPackedTeamToPasteText(
-            importParams.attackerPackedTeam,
-          );
-          importedAny =
-            (await attackerTeam.importTeamFromText(attackerPasteText)) ||
-            importedAny;
+        if (attackerPackedTeam) {
+          setPokemonUsageListUpdatedAttacker(false);
+          setAttackerItemsUsageListUpdated(false);
+          setAttackerMovesUsageListUpdated(false);
+          setAttackerTeratypesUsageListUpdated(false);
+          setAttackerAbilitiesUsageListUpdated(false);
+          setAttackerMetaBuildsUsageListUpdated(false);
         }
-        if (importParams.defenderPackedTeam?.trim()) {
-          const defenderPasteText = unpackPackedTeamToPasteText(
-            importParams.defenderPackedTeam,
-          );
-          importedAny =
-            (await defenderTeam.importTeamFromText(defenderPasteText)) ||
-            importedAny;
+        if (defenderPackedTeam) {
+          setPokemonUsageListUpdatedDefender(false);
+          setDefenderItemsUsageListUpdated(false);
+          setDefenderMovesUsageListUpdated(false);
+          setDefenderTeratypesUsageListUpdated(false);
+          setDefenderAbilitiesUsageListUpdated(false);
+          setDefenderMetaBuildsUsageListUpdated(false);
         }
 
-        if (importedAny) {
-          window.setTimeout(() => {
-            field.resetField();
-            attackerSide.resetSide();
-            defenderSide.resetSide();
-          }, 0);
-          cleanExternalImportUrl();
-        }
+        // 等默认选择 effect 消费完本轮 render 中的旧 flag 后再导入，避免同一轮抢写。
+        window.setTimeout(() => {
+          void (async () => {
+            let importedAny = false;
+
+            if (attackerPackedTeam) {
+              const attackerPasteText =
+                unpackPackedTeamToPasteText(attackerPackedTeam);
+              importedAny =
+                (await attackerTeam.importTeamFromText(attackerPasteText)) ||
+                importedAny;
+            }
+            if (defenderPackedTeam) {
+              const defenderPasteText =
+                unpackPackedTeamToPasteText(defenderPackedTeam);
+              importedAny =
+                (await defenderTeam.importTeamFromText(defenderPasteText)) ||
+                importedAny;
+            }
+
+            if (importedAny) {
+              window.setTimeout(() => {
+                field.resetField();
+                attackerSide.resetSide();
+                defenderSide.resetSide();
+              }, 0);
+              cleanExternalImportUrl();
+            }
+          })();
+        }, 0);
       };
 
       void applyExternalImport();
@@ -236,9 +300,19 @@ const MainProviders = React.lazy(async () => {
       formats.currentReg,
       formats.currentRule,
       formats.loading,
-      pokemonUsage.loading,
-      pokemonUsage.pokemonUsageListUpdatedAttacker,
-      pokemonUsage.pokemonUsageListUpdatedDefender,
+      pokemonUsageLoading,
+      setPokemonUsageListUpdatedAttacker,
+      setPokemonUsageListUpdatedDefender,
+      setAttackerItemsUsageListUpdated,
+      setAttackerMovesUsageListUpdated,
+      setAttackerTeratypesUsageListUpdated,
+      setAttackerAbilitiesUsageListUpdated,
+      setAttackerMetaBuildsUsageListUpdated,
+      setDefenderItemsUsageListUpdated,
+      setDefenderMovesUsageListUpdated,
+      setDefenderTeratypesUsageListUpdated,
+      setDefenderAbilitiesUsageListUpdated,
+      setDefenderMetaBuildsUsageListUpdated,
     ]);
 
     return null;

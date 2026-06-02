@@ -109,10 +109,14 @@ const usePokemonMovesetsLogic = (pokemonId?: string) => {
     },
     []
   );
-  const { pokemonUsageList } = usePokemonUsage();
+  const {
+    pokemonUsageParamsKey,
+    loading: pokemonUsageLoading,
+  } = usePokemonUsage();
   const [disableAutoSelect, setDisableAutoSelectState] = useState(false);
   const disableAutoSelectRef = useRef(false);
   const disableAutoSelectOptionsRef = useRef<AutoSelectDisableOptions>({});
+  const autoSelectSuppressionGenerationRef = useRef(0);
 
   const [itemsUsageList, setItemsUsageList] = useState<
     MovesetsUsage[] | undefined
@@ -168,6 +172,9 @@ const usePokemonMovesetsLogic = (pokemonId?: string) => {
       const hasDisabledOptions = hasDisabledAutoSelectOptions(options);
       disableAutoSelectOptionsRef.current = hasDisabledOptions ? options : {};
       disableAutoSelectRef.current = hasDisabledOptions;
+      if (hasDisabledOptions) {
+        autoSelectSuppressionGenerationRef.current += 1;
+      }
       setDisableAutoSelectState(hasDisabledOptions);
     },
     [hasDisabledAutoSelectOptions, normalizeAutoSelectDisableOptions]
@@ -225,15 +232,13 @@ const usePokemonMovesetsLogic = (pokemonId?: string) => {
 
   useEffect(() => {
     let cancelled = false;
-    const disabledAutoSelectOptions = disableAutoSelectOptionsRef.current;
-    const _disableAutoSelect = disableAutoSelectRef.current;
-    if (_disableAutoSelect) {
-      disableAutoSelectRef.current = false;
-      disableAutoSelectOptionsRef.current = {};
-      setDisableAutoSelect(false);
-      resetUsageListUpdatedFlags();
-    }
     if (!rootFormeSpecies) {
+      if (disableAutoSelectRef.current) {
+        disableAutoSelectRef.current = false;
+        disableAutoSelectOptionsRef.current = {};
+        setDisableAutoSelect(false);
+        resetUsageListUpdatedFlags();
+      }
       lastMovesetsParamsRef.current = "";
       setEmptyMovesets();
       return;
@@ -246,54 +251,69 @@ const usePokemonMovesetsLogic = (pokemonId?: string) => {
     )
       ? selectedSpeciesName || rootSpeciesName
       : rootSpeciesName;
-    const paramsKey = `${currentReg || ""}-${currentRule || ""}-${currentMonthTag || ""}-${currentCutline || ""}-${
-      movesetsPokemonName
-    }`;
+    const formatParams = [
+      currentReg || "",
+      currentRule || "",
+      currentMonthTag || "",
+      currentCutline || "",
+    ];
+    const paramsKey = JSON.stringify([...formatParams, movesetsPokemonName]);
     const hasSelectionParams = Boolean(
       currentReg &&
         currentRule &&
         currentMonthTag &&
         currentCutline
     );
+    const formatParamsKey = JSON.stringify(formatParams);
+    const previousParamsKey = lastMovesetsParamsRef.current;
+    let previousFormatParamsKey = "";
+    if (previousParamsKey) {
+      try {
+        const previousParams = JSON.parse(previousParamsKey);
+        if (Array.isArray(previousParams)) {
+          previousFormatParamsKey = JSON.stringify(previousParams.slice(0, 4));
+        }
+      } catch {
+        previousFormatParamsKey = "";
+      }
+    }
+    const _disableAutoSelect = disableAutoSelectRef.current;
+    const shouldSuppressAutoSelect =
+      _disableAutoSelect &&
+      (!previousParamsKey || previousFormatParamsKey === formatParamsKey);
+    const disabledAutoSelectOptions = shouldSuppressAutoSelect
+      ? disableAutoSelectOptionsRef.current
+      : {};
+
+    if (_disableAutoSelect) {
+      disableAutoSelectRef.current = false;
+      disableAutoSelectOptionsRef.current = {};
+      setDisableAutoSelect(false);
+      if (shouldSuppressAutoSelect) {
+        resetUsageListUpdatedFlags();
+      }
+    }
 
     // 如果参数相同，跳过调用
     if (lastMovesetsParamsRef.current === paramsKey) {
       return;
     }
 
-    lastMovesetsParamsRef.current = paramsKey;
+    if (hasSelectionParams) {
+      if (pokemonUsageLoading || pokemonUsageParamsKey !== formatParamsKey) {
+        return;
+      }
+    }
+
     const run = async () => {
-      if (hasSelectionParams && (!pokemonUsageList || pokemonUsageList.length === 0)) {
-        setEmptyMovesets();
-        if (!disabledAutoSelectOptions.items) {
-          setItemsUsageListUpdated(true);
-        }
-        if (!disabledAutoSelectOptions.moves) {
-          setMovesUsageListUpdated(true);
-        }
-        if (!disabledAutoSelectOptions.teratypes) {
-          setTeratypesUsageListUpdated(true);
-        }
-        if (!disabledAutoSelectOptions.abilities) {
-          setAbilitiesUsageListUpdated(true);
-        }
-        if (!disabledAutoSelectOptions.metaBuilds) {
-          setMetaBuildsUsageListUpdated(true);
-        }
-        return;
-      }
-
-      if (
-        hasSelectionParams &&
-        !pokemonUsageList.find(
-          (usage) => usage.pokemon === movesetsPokemonName
-        )
-      ) {
-        setEmptyMovesets();
-        return;
-      }
-
       const pokemon = movesetsPokemonName;
+      lastMovesetsParamsRef.current = paramsKey;
+      const suppressionGenerationAtRequestStart =
+        autoSelectSuppressionGenerationRef.current;
+      const canAutoSelect = (option: keyof AutoSelectDisableOptions) =>
+        !disabledAutoSelectOptions[option] &&
+        suppressionGenerationAtRequestStart ===
+          autoSelectSuppressionGenerationRef.current;
 
       try {
         setLoading(true);
@@ -357,24 +377,28 @@ const usePokemonMovesetsLogic = (pokemonId?: string) => {
           ),
         ]);
 
+        if (cancelled) {
+          return;
+        }
+
         // 只有当数据不为null时才更新对应的使用率列表
         if (itemsData !== null) {
           setItemsUsageList(itemsData);
-          if (!disabledAutoSelectOptions.items) setItemsUsageListUpdated(true);
+          if (canAutoSelect("items")) setItemsUsageListUpdated(true);
         }
         if (movesData !== null) {
           setMovesUsageList(movesData);
-          if (!disabledAutoSelectOptions.moves) setMovesUsageListUpdated(true);
+          if (canAutoSelect("moves")) setMovesUsageListUpdated(true);
         }
         if (teratypesData !== null) {
           setTeratypesUsageList(teratypesData);
-          if (!disabledAutoSelectOptions.teratypes) {
+          if (canAutoSelect("teratypes")) {
             setTeratypesUsageListUpdated(true);
           }
         }
         if (abilitiesData !== null) {
           setAbilitiesUsageList(abilitiesData);
-          if (!disabledAutoSelectOptions.abilities) {
+          if (canAutoSelect("abilities")) {
             setAbilitiesUsageListUpdated(true);
           }
         }
@@ -383,7 +407,7 @@ const usePokemonMovesetsLogic = (pokemonId?: string) => {
           const metaBuilds =
             MetaBuildsUsage.getListFromChaos1(chaosNatureSpread1);
           setMetaBuildsUsageList(metaBuilds);
-          if (!disabledAutoSelectOptions.metaBuilds) {
+          if (canAutoSelect("metaBuilds")) {
             setMetaBuildsUsageListUpdated(true);
           }
         }
@@ -391,23 +415,26 @@ const usePokemonMovesetsLogic = (pokemonId?: string) => {
           setChaosSpread2Data(chaosSpread2);
         }
       } catch (err) {
+        if (cancelled) {
+          return;
+        }
         setError(
           err instanceof Error ? err.message : "errors.movesetsFetchFailed"
         );
         setEmptyMovesets();
-        if (!disabledAutoSelectOptions.items) {
+        if (canAutoSelect("items")) {
           setItemsUsageListUpdated(true);
         }
-        if (!disabledAutoSelectOptions.moves) {
+        if (canAutoSelect("moves")) {
           setMovesUsageListUpdated(true);
         }
-        if (!disabledAutoSelectOptions.teratypes) {
+        if (canAutoSelect("teratypes")) {
           setTeratypesUsageListUpdated(true);
         }
-        if (!disabledAutoSelectOptions.abilities) {
+        if (canAutoSelect("abilities")) {
           setAbilitiesUsageListUpdated(true);
         }
-        if (!disabledAutoSelectOptions.metaBuilds) {
+        if (canAutoSelect("metaBuilds")) {
           setMetaBuildsUsageListUpdated(true);
         }
       } finally {
@@ -425,7 +452,8 @@ const usePokemonMovesetsLogic = (pokemonId?: string) => {
     currentRule,
     currentMonthTag,
     currentCutline,
-    pokemonUsageList,
+    pokemonUsageLoading,
+    pokemonUsageParamsKey,
     species,
     rootFormeSpecies,
     resetUsageListUpdatedFlags,

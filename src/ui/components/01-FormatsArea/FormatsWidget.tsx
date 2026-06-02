@@ -10,6 +10,8 @@ interface FormatsWidgetProps {
   className?: string;
 }
 
+export const MANUAL_FORMATS_CHANGE_EVENT = "manualFormatsChange";
+
 const FormatsWidget: React.FC<FormatsWidgetProps> = ({ className = "" }) => {
   const { t } = useTranslation();
   const tabBase = 100000;
@@ -84,7 +86,13 @@ const FormatsWidget: React.FC<FormatsWidgetProps> = ({ className = "" }) => {
         <SearchableDropdown
           items={items}
           value={value}
-          onChange={(value) => onChange(value as string)}
+          onChange={(nextValue) => {
+            const normalizedValue = nextValue as string;
+            if (normalizedValue !== value) {
+              window.dispatchEvent(new CustomEvent(MANUAL_FORMATS_CHANGE_EVENT));
+            }
+            onChange(normalizedValue);
+          }}
           placeholder={`${t("search")}...`}
           className={dropdownClassName || `${className}-searchable`}
           inputClassName={`fw-dropdown-input ${className}-input`}

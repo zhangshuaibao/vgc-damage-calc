@@ -49,6 +49,7 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
     clearTeam,
     exportTeamToClipboard,
     importTeamFromClipboard,
+    hasUnsavedCurrentPokemonChanges,
   } = useTeamState(isAttacker);
   const { t } = useTranslation("app");
   const [toastText, setToastText] = React.useState<string | null>(null);
@@ -95,6 +96,26 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
   }, [importTeamFromClipboard, t]);
 
   const handleSaveTeam = React.useCallback(async () => {
+    if (hasUnsavedCurrentPokemonChanges()) {
+      const shouldContinue = await confirm<boolean>({
+        messageKey: "team.confirmSavePaste.message",
+        buttons: [
+          {
+            labelKey: "team.confirmSavePaste.save",
+            value: true,
+            tone: "primary",
+          },
+          {
+            labelKey: "team.confirmSavePaste.editAgain",
+            value: false,
+            tone: "default",
+          },
+        ],
+      });
+      if (!shouldContinue) {
+        return;
+      }
+    }
     const name = window.prompt(
       t("team.saveNamePrompt"),
       currentSavedTeamName || "",
@@ -106,7 +127,13 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
     if (ok) {
       setToastText(t("team.saveTeamSuccess"));
     }
-  }, [currentSavedTeamName, saveTeamToStorage, t]);
+  }, [
+    confirm,
+    currentSavedTeamName,
+    hasUnsavedCurrentPokemonChanges,
+    saveTeamToStorage,
+    t,
+  ]);
 
   const handleLoadSavedTeam = React.useCallback(
     async (teamId: string) => {

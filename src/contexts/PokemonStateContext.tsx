@@ -5,7 +5,6 @@ import React, {
   useCallback,
   useEffect,
   ReactNode,
-  useMemo,
 } from "react";
 import {
   AutoSelectDisableOptions,
@@ -253,13 +252,35 @@ const usePokemonStateLogic = (pokemonId: string): PokemonStateContextType => {
   );
 
   // 获取 metaBuildsUsageList 从 PokemonMovesetsContext
-  const { metaBuildsUsageList, setDisableAutoSelect } = usePokemonMovesets(
+  const {
+    metaBuildsUsageList,
+    setDisableAutoSelect,
+    setItemsUsageListUpdated,
+    setMovesUsageListUpdated,
+    setTeratypesUsageListUpdated,
+    setAbilitiesUsageListUpdated,
+    setMetaBuildsUsageListUpdated,
+  } = usePokemonMovesets(
     pokemonId === "pokemon-attacker"
       ? true
       : pokemonId === "pokemon-defender"
         ? false
         : undefined,
   );
+
+  const clearMovesetsAutoSelectFlags = useCallback(() => {
+    setItemsUsageListUpdated(false);
+    setMovesUsageListUpdated(false);
+    setTeratypesUsageListUpdated(false);
+    setAbilitiesUsageListUpdated(false);
+    setMetaBuildsUsageListUpdated(false);
+  }, [
+    setAbilitiesUsageListUpdated,
+    setItemsUsageListUpdated,
+    setMetaBuildsUsageListUpdated,
+    setMovesUsageListUpdated,
+    setTeratypesUsageListUpdated,
+  ]);
 
   // Pokemon状态
   const [displayPokemon, setDisplayPokemon] = useState<Pokemon | undefined>(
@@ -283,34 +304,46 @@ const usePokemonStateLogic = (pokemonId: string): PokemonStateContextType => {
   // setPokemonName函数：将unknown转换为SpeciesData
   const setPokemonName = useCallback((value: unknown) => {
     const species = value as SpeciesData | undefined;
-    setPokemonSpecies(species ? { value: species } : undefined);
     if (!species) {
+      setPokemonSpecies(undefined);
       setRootFormeSpecies(undefined);
       return;
     }
     const root = ShowdownDataService.getRootSpecies(species);
-    setRootFormeSpecies(root ? { value: root } : undefined);
+    setPokemonSpecies((prev) =>
+      prev?.value.name === species.name ? prev : { value: species },
+    );
+    setRootFormeSpecies((prev) =>
+      prev?.value.name === root?.name
+        ? prev
+        : root
+          ? { value: root }
+          : undefined,
+    );
   }, []);
 
   // setPokemonForme函数：将unknown转换为SpeciesData
   const setPokemonForme = useCallback(
     (value: unknown) => {
       const forme = value as SpeciesData | undefined;
-      setPokemonSpecies(forme ? { value: forme } : undefined);
       if (!forme) {
+        setPokemonSpecies(undefined);
         setRootFormeSpecies(undefined);
         return;
       }
       const root = ShowdownDataService.getRootSpecies(forme);
+      setPokemonSpecies((prev) =>
+        prev?.value.name === forme.name ? prev : { value: forme },
+      );
       if (!root) {
         setRootFormeSpecies(undefined);
         return;
       }
-      if (root.name !== rootFormeSpecies?.value.name) {
-        setRootFormeSpecies({ value: root });
-      }
+      setRootFormeSpecies((prev) =>
+        prev?.value.name === root.name ? prev : { value: root },
+      );
     },
-    [rootFormeSpecies],
+    [],
   );
 
   useEffect(() => {
@@ -753,14 +786,9 @@ const usePokemonStateLogic = (pokemonId: string): PokemonStateContextType => {
         if (!text) return false;
         const rows = text.split("\n").map((row) => row.trim());
         const hasExplicitEvs = rows.some((row) => /^EVs\s*:/i.test(row));
-        const hasExplicitNature = rows.some((row) => {
-          const parts = row.split(/\s+/);
-          return parts[0] !== "-" && parts[1] === "Nature";
-        });
-        if (!hasExplicitEvs || !hasExplicitNature) {
-          setDisableAutoSelect(true);
-          setMetaState(undefined);
-        }
+        setDisableAutoSelect(true);
+        clearMovesetsAutoSelectFlags();
+        setMetaState(undefined);
         const list = Pokemon.importFromPasteText(currentGen, text, {
           useChampionsEVs: isChampionsGame,
         });
@@ -826,7 +854,7 @@ const usePokemonStateLogic = (pokemonId: string): PokemonStateContextType => {
         if (p.settingTeraType) {
           setTeraType(p.settingTeraType);
         }
-        if (p.evs) setEvs(p.evs);
+        setEvs(hasExplicitEvs && p.evs ? p.evs : createEmptyEvs());
         if (p.ivs) setIvs(p.ivs);
         setMove1State(ShowdownDataService.getPokemonMoveInfo(p.moves?.[0]));
         setMove2State(ShowdownDataService.getPokemonMoveInfo(p.moves?.[1]));
@@ -838,8 +866,9 @@ const usePokemonStateLogic = (pokemonId: string): PokemonStateContextType => {
       }
     },
     [
+      clearMovesetsAutoSelectFlags,
+      createEmptyEvs,
       currentGen,
-      displayPokemon,
       isChampionsGame,
       pokemonId,
       setDisableAutoSelect,

@@ -266,7 +266,12 @@ const PokemonInfoColumn3: React.FC<EditAreaProps> = ({ isAttacker }) => {
     } else {
       setTeraType(undefined);
     }
-  }, [teraTypeDropdownItems]);
+  }, [
+    teratypesUsageListUpdated,
+    setTeraType,
+    setTeratypesUsageListUpdated,
+    teraTypeDropdownItems,
+  ]);
 
   // 获取道具列表并根据使用率排序
   const itemDropdownItems: DropdownItem[] = useMemo(() => {
@@ -372,7 +377,13 @@ const PokemonInfoColumn3: React.FC<EditAreaProps> = ({ isAttacker }) => {
     } else {
       setItem(undefined);
     }
-  }, [itemDropdownItems]);
+  }, [
+    item,
+    itemDropdownItems,
+    itemsUsageListUpdated,
+    setItem,
+    setItemsUsageListUpdated,
+  ]);
 
   return (
     <div>

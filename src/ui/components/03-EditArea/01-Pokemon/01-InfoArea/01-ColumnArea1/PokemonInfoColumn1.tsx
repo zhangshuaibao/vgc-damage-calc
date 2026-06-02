@@ -172,8 +172,10 @@ const PokemonInfoColumn1: React.FC<EditAreaProps> = ({ isAttacker }) => {
       const isAvailable =
         permittedPokemonIds.has(pokemonKey) ||
         permittedPokemonIds.has(normalizePokemonId(baseSpeciesName));
-      const pokemonTypes = (pokemonData as SpeciesData).types || "";
-      const pokemonTypeString = `${pokemonTypes.join(" ")}|${pokemonTypes
+      const pokemonTypes = (pokemonData as SpeciesData).types || [];
+      const pokemonTypeString = `${pokemonTypes.join(" ")}|${[
+        ...pokemonTypes,
+      ]
         .reverse()
         .join(" ")}`;
       const translatePokemonTypes = pokemonTypes.map((type: string) =>
@@ -184,11 +186,11 @@ const PokemonInfoColumn1: React.FC<EditAreaProps> = ({ isAttacker }) => {
       );
       const translatePokemonTypesString = `${translatePokemonTypes.join(
         "",
-      )}|${translatePokemonTypes
+      )}|${[...translatePokemonTypes]
         .reverse()
         .join("")}|${translatePokemonTypesShort.join(
         "",
-      )}|${translatePokemonTypesShort.reverse().join("")}`;
+      )}|${[...translatePokemonTypesShort].reverse().join("")}`;
       const translatedName = translatePokemon(pokemonName) || "";
       const searchKey = `${pokemonName}|${translatedName}${
         language === "zh"
@@ -232,7 +234,15 @@ const PokemonInfoColumn1: React.FC<EditAreaProps> = ({ isAttacker }) => {
         setPokemonUsageListUpdatedDefender(false);
       }
     }
-  }, [pokemonDropdownItems]);
+  }, [
+    isAttacker,
+    pokemonDropdownItems,
+    pokemonUsageListUpdatedAttacker,
+    pokemonUsageListUpdatedDefender,
+    setPokemonName,
+    setPokemonUsageListUpdatedAttacker,
+    setPokemonUsageListUpdatedDefender,
+  ]);
 
   const pokemonFormeDropdownItems: DropdownItem[] = useMemo(() => {
     if (!rootFormeSpecies) {
@@ -261,8 +271,10 @@ const PokemonInfoColumn1: React.FC<EditAreaProps> = ({ isAttacker }) => {
     return sortedPokemonList.map((pokemonKey) => {
       const pokemonData = speciesData[pokemonKey as keyof typeof speciesData];
       const pokemonName = pokemonData?.name || pokemonKey;
-      const pokemonTypes = (pokemonData as SpeciesData).types || "";
-      const pokemonTypeString = `${pokemonTypes.join(" ")}|${pokemonTypes
+      const pokemonTypes = (pokemonData as SpeciesData).types || [];
+      const pokemonTypeString = `${pokemonTypes.join(" ")}|${[
+        ...pokemonTypes,
+      ]
         .reverse()
         .join(" ")}`;
       const translatePokemonTypes = pokemonTypes.map((type: string) =>
@@ -273,11 +285,11 @@ const PokemonInfoColumn1: React.FC<EditAreaProps> = ({ isAttacker }) => {
       );
       const translatePokemonTypesString = `${translatePokemonTypes.join(
         "",
-      )}|${translatePokemonTypes
+      )}|${[...translatePokemonTypes]
         .reverse()
         .join("")}|${translatePokemonTypesShort.join(
         "",
-      )}|${translatePokemonTypesShort.reverse().join("")}`;
+      )}|${[...translatePokemonTypesShort].reverse().join("")}`;
       const translatedName = translatePokemon(pokemonName) || "";
       const searchKey = `${pokemonName}|${translatedName}${
         language === "zh"

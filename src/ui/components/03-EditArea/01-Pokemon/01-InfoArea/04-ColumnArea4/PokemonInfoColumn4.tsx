@@ -348,7 +348,23 @@ const PokemonInfoColumn4: React.FC<EditAreaProps> = ({ isAttacker }) => {
       setMove4Hits(undefined);
       setMove4BP(undefined);
     }
-  }, [moveDropdownItems]);
+  }, [
+    moveDropdownItems,
+    movesUsageListUpdated,
+    setMove1,
+    setMove1BP,
+    setMove1Hits,
+    setMove2,
+    setMove2BP,
+    setMove2Hits,
+    setMove3,
+    setMove3BP,
+    setMove3Hits,
+    setMove4,
+    setMove4BP,
+    setMove4Hits,
+    setMovesUsageListUpdated,
+  ]);
 
   return (
     <div>
