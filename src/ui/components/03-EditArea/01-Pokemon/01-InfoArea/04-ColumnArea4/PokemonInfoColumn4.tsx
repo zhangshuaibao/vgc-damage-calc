@@ -1,5 +1,6 @@
 import React, { useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+// @ts-ignore
 import "./PokemonInfoColumn4.css";
 import EditAreaProps from "../../../Props/EditAreaProps";
 import { usePokemonTranslation } from "../../../../../../contexts/usePokemonTranslation";

@@ -1,3 +1,4 @@
+// @ts-ignore
 import "./PokemonMetaBuilds.css";
 import EditAreaProps from "../../../Props/EditAreaProps";
 import SearchableDropdown, {

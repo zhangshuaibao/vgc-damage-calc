@@ -1,7 +1,9 @@
 import React, { Suspense, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ThemeProvider } from "../contexts/ThemeContext";
+// @ts-ignore
 import "./theme.css";
+// @ts-ignore
 import "./app.css";
 import { LanguageProvider, useLanguage } from "../contexts/LanguageContext";
 import { ContextAwareConfirmation } from "react-confirm";

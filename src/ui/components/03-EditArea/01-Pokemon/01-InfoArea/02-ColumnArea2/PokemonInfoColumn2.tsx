@@ -1,5 +1,6 @@
 import React, { useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+// @ts-ignore
 import "./PokemonInfoColumn2.css";
 import EditAreaProps from "../../../Props/EditAreaProps";
 import SearchableDropdown, {

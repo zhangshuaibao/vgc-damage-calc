@@ -1,5 +1,6 @@
 import React from "react";
 import EditAreaProps from "../Props/EditAreaProps";
+// @ts-ignore
 import "./Team.css";
 import { useTeamState } from "../../../../contexts/TeamContext";
 
