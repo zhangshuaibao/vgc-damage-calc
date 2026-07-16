@@ -32,7 +32,15 @@
 }
 
 .display-damage__token--move {
-  font-weight: 600;
+  font-size: 1.3em;
+  font-weight: 500;
+}
+
+.display-damage__token--terrain,
+.display-damage__token--weather,
+.display-damage__token--aura {
+  font-size: 1.3em;
+  font-weight: 500;
 }
 
 .display-damage__token--pokemon {
@@ -43,7 +51,6 @@
 
 .display-damage__token--vs {
   display: inline-block;
-  font-size: 1.2em;
   font-weight: 400;
   letter-spacing: 0.08em;
   color: var(--text-color-secondary);

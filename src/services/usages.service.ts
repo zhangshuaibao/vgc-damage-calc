@@ -13,7 +13,7 @@ import {
  * Showdown宝可梦服务类
  * 提供获取Showdown格式、使用率数据等功能
  */
-export class ShowdownStatsService {
+export class UsagesService {
   private static readonly _apiURL = `${AppConstants.BaseApiURL}/showdown`;
   private httpClient: HttpClient;
 
@@ -38,7 +38,7 @@ export class ShowdownStatsService {
    */
   async getFormats(): Promise<ShowdownFormats | undefined> {
     try {
-      const url = `${ShowdownStatsService._apiURL}/formats`;
+      const url = `${UsagesService._apiURL}/formats`;
       const response = await this.httpClient.get<unknown>(url);
       return ShowdownFormats.fromJson(response.data as Record<string, unknown>);
     } catch (error) {
@@ -63,7 +63,7 @@ export class ShowdownStatsService {
     const usageList: PokemonUsage[] = [];
 
     if (
-      !ShowdownStatsService.hasRequiredSelectionParams(
+      !UsagesService.hasRequiredSelectionParams(
         format,
         rule,
         tag,
@@ -75,7 +75,7 @@ export class ShowdownStatsService {
 
     try {
       const url = `${
-        ShowdownStatsService._apiURL
+        UsagesService._apiURL
       }/${tag}/${format.toLowerCase()}${
         rule.toLowerCase() === "bo3" ? "bo3" : ""
       }/${cutline}/usage`;
@@ -120,7 +120,7 @@ export class ShowdownStatsService {
     const spreads: MovesetsUsage[] = [];
 
     if (
-      !ShowdownStatsService.hasRequiredSelectionParams(
+      !UsagesService.hasRequiredSelectionParams(
         format,
         rule,
         tag,
@@ -131,7 +131,7 @@ export class ShowdownStatsService {
     }
 
     // 获取宝可梦的完整名称而不是tag
-    const { ShowdownDataService } = await import("./showdown.data.service");
+    const { ShowdownDataService } = await import("./showdown.utils/showdown.data.service");
     const pokemonData = ShowdownDataService.getPokemonSpecies(pokemon);
     const pokemonName = pokemonData?.name || pokemon;
     const encodedPokemon = encodeURIComponent(pokemonName);
@@ -157,7 +157,7 @@ export class ShowdownStatsService {
       }
 
       const url = `${
-        ShowdownStatsService._apiURL
+        UsagesService._apiURL
       }/${tag}/${format.toLowerCase()}${
         rule.toLowerCase() === "bo3" ? "bo3" : ""
       }/${cutline}/${encodedPokemon}/${movesetsTagString}?all=true`;
@@ -197,7 +197,7 @@ export class ShowdownStatsService {
     pokemon: string
   ): Promise<ChaosNatureSpread1[]> {
     if (
-      !ShowdownStatsService.hasRequiredSelectionParams(
+      !UsagesService.hasRequiredSelectionParams(
         format,
         rule,
         tag,
@@ -208,14 +208,14 @@ export class ShowdownStatsService {
     }
 
     // 获取宝可梦的完整名称而不是tag
-    const { ShowdownDataService } = await import("./showdown.data.service");
+    const { ShowdownDataService } = await import("./showdown.utils/showdown.data.service");
     const pokemonData = ShowdownDataService.getPokemonSpecies(pokemon);
     const pokemonName = pokemonData?.name || pokemon;
     const encodedPokemon = encodeURIComponent(pokemonName);
 
     try {
       const url = `${
-        ShowdownStatsService._apiURL
+        UsagesService._apiURL
       }/${tag}/${format.toLowerCase()}${
         rule.toLowerCase() === "bo3" ? "bo3" : ""
       }/${cutline}/${encodedPokemon}/spreads1`;
@@ -251,7 +251,7 @@ export class ShowdownStatsService {
     pokemon: string
   ): Promise<ChaosSpread2[]> {
     if (
-      !ShowdownStatsService.hasRequiredSelectionParams(
+      !UsagesService.hasRequiredSelectionParams(
         format,
         rule,
         tag,
@@ -262,14 +262,14 @@ export class ShowdownStatsService {
     }
 
     // 获取宝可梦的完整名称而不是tag
-    const { ShowdownDataService } = await import("./showdown.data.service");
+    const { ShowdownDataService } = await import("./showdown.utils/showdown.data.service");
     const pokemonData = ShowdownDataService.getPokemonSpecies(pokemon);
     const pokemonName = pokemonData?.name || pokemon;
     const encodedPokemon = encodeURIComponent(pokemonName);
 
     try {
       const url = `${
-        ShowdownStatsService._apiURL
+        UsagesService._apiURL
       }/${tag}/${format.toLowerCase()}${
         rule.toLowerCase() === "bo3" ? "bo3" : ""
       }/${cutline}/${encodedPokemon}/spreads2`;
@@ -292,5 +292,5 @@ export class ShowdownStatsService {
 }
 
 // 导出单例实例
-export const showdownStatsService = new ShowdownStatsService();
-export default showdownStatsService;
+export const usagesService = new UsagesService();
+export default usagesService;

@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { getTypeColor } from "../../../../../utils/type.colors";
 import { getDamageColorFromChance } from "../../../../../utils/damage.colors";
 import ToggleButton from "../../../../../ui/widgets/ToggleButton/ToggleButton";
-import { ShowdownDataService } from "../../../../../services/showdown.data.service";
+import { ShowdownDataService } from "../../../../../services/showdown.utils/showdown.data.service";
 import SmartImage from "../../../../widgets/SmartImage/SmartImage";
 import { usePokemonTranslation } from "../../../../../contexts/usePokemonTranslation";
 // 伤害计算已由 DamageComputeContext 提供汇总，组件不再直接计算

@@ -16,7 +16,7 @@ import { MoveData } from "../vendors/smogon/pokemon-showdown/sim/dex-moves";
 import { SpeciesData } from "../vendors/smogon/pokemon-showdown/sim/dex-species";
 import { NatureData } from "../vendors/smogon/pokemon-showdown/sim/dex-data";
 import { Pokemon } from "../models/pokemon.calculator.model";
-import { ShowdownDataService } from "../services/showdown.data.service";
+import { ShowdownDataService } from "../services/showdown.utils/showdown.data.service";
 import {
   StatsTable,
   Generations,

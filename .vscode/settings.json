@@ -1,0 +1,12 @@
+{
+    "terminal.integrated.env.osx": {
+        "PATH": "${workspaceFolder}/.yarn/bin:${env:PATH}"
+    },
+    "terminal.integrated.env.linux": {
+        "PATH": "${workspaceFolder}/.yarn/bin:${env:PATH}"
+    },
+    "cSpell.words": [
+        "Learnsets",
+        "Pokedex"
+    ]
+}

@@ -7,8 +7,8 @@ import React, {
   useCallback,
 } from "react";
 import { ShowdownFormats } from "../models/showndown.model";
-import { ShowdownDataService } from "../services/showdown.data.service";
-import { showdownStatsService } from "../services/showdown.stats.service";
+import { ShowdownDataService } from "../services/showdown.utils/showdown.data.service";
+import { usagesService } from "../services/usages.service";
 
 const defaultGen = 9;
 const defaultGame = "Champions";
@@ -116,7 +116,7 @@ const useFormatsData = (): UseFormatsDataReturn => {
           ? getGameByReg(prev.showdownFormats, reg)
           : prev.currentGame;
         const currentGen = getGenByGame(prev.showdownFormats, currentGame);
-        ShowdownDataService.setCurrentGameEnv(currentGame, currentGen);
+        ShowdownDataService.setCurrentGameEnv(currentGame, currentGen, reg);
         const newState = {
           ...prev,
           currentGame,
@@ -163,6 +163,7 @@ const useFormatsData = (): UseFormatsDataReturn => {
       ShowdownDataService.setCurrentGameEnv(
         game,
         getGenByGame(state.showdownFormats, game),
+        nextReg,
       );
 
       setState((prev) => ({
@@ -220,7 +221,7 @@ const useFormatsData = (): UseFormatsDataReturn => {
     setState((prev) => ({ ...prev, loading: true, error: undefined }));
 
     try {
-      const formats = await showdownStatsService.getFormats();
+      const formats = await usagesService.getFormats();
       setState((prev) => {
         const newState = {
           ...prev,
@@ -244,7 +245,11 @@ const useFormatsData = (): UseFormatsDataReturn => {
               ? prev.currentReg
               : availableRegs[0];
           const currentGen = getGenByGame(formats, currentGame);
-          ShowdownDataService.setCurrentGameEnv(currentGame, currentGen);
+          ShowdownDataService.setCurrentGameEnv(
+            currentGame,
+            currentGen,
+            currentReg,
+          );
           const monthTags = formats.getYyyyMMList(currentReg);
           const rules = formats.getRuleList(currentReg);
           const cutlines = formats.cutlineList;

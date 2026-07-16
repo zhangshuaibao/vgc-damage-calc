@@ -8,7 +8,7 @@ import React, {
   ReactNode,
   useMemo,
 } from "react";
-import { ShowdownStatsService } from "../services/showdown.stats.service";
+import { UsagesService } from "../services/usages.service";
 import { PokemonUsage } from "../models/showndown.model";
 import { useFormats } from "./FormatsContext";
 
@@ -75,7 +75,7 @@ export const PokemonUsageProvider: React.FC<{ children: ReactNode }> = ({
       setLoading(true);
       setError(null);
       try {
-        const statsService = new ShowdownStatsService();
+        const statsService = new UsagesService();
         const usageData = await statsService.getShowdownUsage(
           currentReg || "",
           currentRule || "",

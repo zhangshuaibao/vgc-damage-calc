@@ -28,6 +28,7 @@ const FormatsWidget: React.FC<FormatsWidgetProps> = ({ className = "" }) => {
     currentMonthTag,
     currentRule,
     currentCutline,
+    showdownFormats,
     setCurrentGame,
     setCurrentReg,
     setCurrentMonthTag,
@@ -44,7 +45,7 @@ const FormatsWidget: React.FC<FormatsWidgetProps> = ({ className = "" }) => {
   }));
 
   const regDropdownItems: DropdownItem[] = regList.map((reg) => ({
-    key: reg,
+    key: showdownFormats?.getRegLabel(reg) ?? reg,
     value: reg,
   }));
 

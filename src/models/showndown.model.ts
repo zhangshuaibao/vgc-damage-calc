@@ -1,4 +1,4 @@
-import { ShowdownDataService } from "../services/showdown.data.service";
+import { ShowdownDataService } from "../services/showdown.utils/showdown.data.service";
 
 import { StatID, StatsTable } from "../vendors/smogon/damage-calc-dist/index";
 import { NatureData } from "../vendors/smogon/pokemon-showdown/sim/dex-data";
@@ -20,6 +20,7 @@ export class ShowdownFormats {
   private _gens: Map<string, number>;
   private _games: Map<string, string>;
   private _cutlines: string[];
+  private _regLabels: Map<string, string>;
 
   constructor(data: {
     regs: string[];
@@ -28,6 +29,7 @@ export class ShowdownFormats {
     gens: Map<string, number>;
     games: Map<string, string>;
     cutlines: string[];
+    regLabels?: Map<string, string>;
   }) {
     this._regs = data.regs;
     this._yyyyMMs = data.yyyyMMs;
@@ -35,11 +37,22 @@ export class ShowdownFormats {
     this._gens = data.gens;
     this._games = data.games;
     this._cutlines = data.cutlines;
+    this._regLabels = data.regLabels ?? new Map<string, string>();
   }
 
   static fromJson(json: Record<string, unknown>): ShowdownFormats {
     const regsSet = new Set<string>();
     const yyyyMMs = new Map<string, string[]>();
+    const regLabels = new Map<string, string>();
+
+    const gameData = json.games as Record<string, string>;
+    const gens = new Map<string, number>();
+    const games = new Map<string, string>();
+    for (const [key, value] of Object.entries(gameData)) {
+      const splits = value.split(",");
+      games.set(key, splits[0]);
+      gens.set(key, Number(splits[1]));
+    }
 
     const regsData = json.regs as Record<string, string[]>;
     for (const [key, regs] of Object.entries(regsData)) {
@@ -52,11 +65,6 @@ export class ShowdownFormats {
       }
     }
 
-    // 对yyyyMMs的每个列表进行降序排列
-    yyyyMMs.forEach((value) => {
-      value.sort((a, b) => b.localeCompare(a));
-    });
-
     const rulesData = json.rules as Record<string, string[]>;
     const rules = new Map<string, string[]>();
     for (const [key, value] of Object.entries(rulesData)) {
@@ -65,25 +73,23 @@ export class ShowdownFormats {
       rules.set(key, list);
     }
 
-    const gameData = json.games as Record<string, string>;
-    const gens = new Map<string, number>();
-    const games = new Map<string, string>();
-    for (const [key, value] of Object.entries(gameData)) {
-      const splits = value.split(",");
-      games.set(key, splits[0]);
-      gens.set(key, Number(splits[1]));
-    }
+    // 对yyyyMMs的每个列表进行降序排列
+    yyyyMMs.forEach((value) => {
+      value.sort((a, b) => b.localeCompare(a));
+    });
 
     const cutlines = [...(json.cutlines as string[])];
     cutlines.sort((a, b) => b.localeCompare(a)); // 降序排列
+    const regs = Array.from(regsSet);
 
     return new ShowdownFormats({
-      regs: Array.from(regsSet),
+      regs,
       yyyyMMs,
       rules,
       gens,
       games,
       cutlines,
+      regLabels,
     });
   }
 
@@ -133,6 +139,13 @@ export class ShowdownFormats {
       return undefined;
     }
     return this._rules.get(reg);
+  }
+
+  getRegLabel(reg?: string): string | undefined {
+    if (!reg) {
+      return undefined;
+    }
+    return this._regLabels.get(reg) ?? reg;
   }
 
   getGen(game?: string): number | undefined {

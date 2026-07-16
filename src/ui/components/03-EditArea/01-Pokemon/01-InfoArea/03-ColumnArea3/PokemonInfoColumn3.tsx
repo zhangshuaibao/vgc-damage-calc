@@ -8,7 +8,7 @@ import SearchableDropdown, {
   DropdownItem,
 } from "../../../../../widgets/SearchableDropdown/SearchableDropdown";
 import SmartImage from "../../../../../widgets/SmartImage/SmartImage";
-import { ShowdownDataService } from "../../../../../../services/showdown.data.service";
+import { ShowdownDataService } from "../../../../../../services/showdown.utils/showdown.data.service";
 import { usePokemonMovesets } from "../../../../../../contexts/PokemonMovesetsContext";
 import { usePokemonState } from "../../../../../../contexts/PokemonStateContext";
 import { AppPinyin, normalizeString } from "../../../../../../utils";
@@ -20,6 +20,9 @@ import {
 } from "../../../../../../utils/type.colors";
 import { TypeName } from "../../../../../../vendors/smogon/damage-calc-dist/data/interface";
 import { ItemData } from "../../../../../../vendors/smogon/pokemon-showdown/sim/dex-items";
+
+const isItemAvailable = (itemData: ItemData): boolean =>
+  itemData.isNonstandard == null || itemData.isNonstandard === "";
 
 const PokemonInfoColumn3: React.FC<EditAreaProps> = ({ isAttacker }) => {
   const tabBase = isAttacker ? 320000 : 330000;
@@ -87,6 +90,8 @@ const PokemonInfoColumn3: React.FC<EditAreaProps> = ({ isAttacker }) => {
       ({ item }) => {
         const itemName =
           translateItem((item.value as ItemData).name) || item.key;
+        const isAvailable =
+          (item as unknown as { isAvailable?: boolean }).isAvailable !== false;
         const usagePercentage =
           (itemsUsageList || []).find(
             (usage) => normalizeString(usage.name) === normalizeString(item.key)
@@ -95,14 +100,26 @@ const PokemonInfoColumn3: React.FC<EditAreaProps> = ({ isAttacker }) => {
         return (
           <div className="pi_col3-item-dropdown-item">
             <SmartImage
-              className="pi_col3-item-dropdown-avatar"
+              className={`pi_col3-item-dropdown-avatar ${
+                !isAvailable ? "pi_col3-item-unavailable-avatar" : ""
+              }`}
               src={ShowdownDataService.getItemImgUrl(item.key)}
               alt={itemName}
               loading="lazy"
             />
-            <span className="pi_col3-item-dropdown-name">{itemName}</span>
+            <span
+              className={`pi_col3-item-dropdown-name ${
+                !isAvailable ? "pi_col3-item-unavailable" : ""
+              }`}
+            >
+              {itemName}
+            </span>
             {usagePercentage > 0 && (
-              <span className="pi_col3-item-dropdown-usage">
+              <span
+                className={`pi_col3-item-dropdown-usage ${
+                  !isAvailable ? "pi_col3-item-unavailable" : ""
+                }`}
+              >
                 {usagePercentage.toFixed(3)}%
               </span>
             )}
@@ -304,6 +321,7 @@ const PokemonInfoColumn3: React.FC<EditAreaProps> = ({ isAttacker }) => {
             searchKey: searchKey,
             displayContentFC: ItemDisplayContentFC,
             dropdownItemFC: ItemDropdownItem,
+            isAvailable: isItemAvailable(requiredItem[1] as ItemData),
           },
         ];
       }
@@ -318,11 +336,18 @@ const PokemonInfoColumn3: React.FC<EditAreaProps> = ({ isAttacker }) => {
       });
 
       // 根据使用率排序道具列表
-      const sortedItemList = Object.entries(items).sort(([a], [b]) => {
-        const usageA = usageMap.get(normalizeString(a)) || 0;
-        const usageB = usageMap.get(normalizeString(b)) || 0;
-        return usageB - usageA; // 按使用率降序排列（使用率越高越靠前）
-      });
+      const sortedItemList = Object.entries(items).sort(
+        ([a, itemDataA], [b, itemDataB]) => {
+          const isAvailableA = isItemAvailable(itemDataA as ItemData);
+          const isAvailableB = isItemAvailable(itemDataB as ItemData);
+          if (isAvailableA !== isAvailableB) {
+            return isAvailableA ? -1 : 1;
+          }
+          const usageA = usageMap.get(normalizeString(a)) || 0;
+          const usageB = usageMap.get(normalizeString(b)) || 0;
+          return usageB - usageA; // 按使用率降序排列（使用率越高越靠前）
+        },
+      );
 
       return sortedItemList.map(([itemKey, itemData]) => {
         const displayText = translateItem(
@@ -339,12 +364,20 @@ const PokemonInfoColumn3: React.FC<EditAreaProps> = ({ isAttacker }) => {
           searchKey: searchKey,
           displayContentFC: ItemDisplayContentFC,
           dropdownItemFC: ItemDropdownItem,
+          isAvailable: isItemAvailable(itemData as ItemData),
         };
       });
     }
 
     // 如果没有使用率数据，返回默认排序的列表
-    return Object.entries(items).map(([itemKey, itemData]) => {
+    return Object.entries(items).sort(([, itemDataA], [, itemDataB]) => {
+      const isAvailableA = isItemAvailable(itemDataA as ItemData);
+      const isAvailableB = isItemAvailable(itemDataB as ItemData);
+      if (isAvailableA === isAvailableB) {
+        return 0;
+      }
+      return isAvailableA ? -1 : 1;
+    }).map(([itemKey, itemData]) => {
       const displayText = translateItem((itemData as ItemData).name || itemKey);
       const searchKey = `${itemKey}|${displayText}${
         language === "zh" ? `|${AppPinyin.getSearchKeywords(displayText)}` : ""
@@ -355,9 +388,17 @@ const PokemonInfoColumn3: React.FC<EditAreaProps> = ({ isAttacker }) => {
         searchKey: searchKey,
         displayContentFC: ItemDisplayContentFC,
         dropdownItemFC: ItemDropdownItem,
+        isAvailable: isItemAvailable(itemData as ItemData),
       };
     });
-  }, [pokemonSpecies, ItemDropdownItem, ItemDisplayContentFC]);
+  }, [
+    pokemonSpecies,
+    ItemDropdownItem,
+    ItemDisplayContentFC,
+    itemsUsageList,
+    language,
+    translateItem,
+  ]);
 
   // 当道具下拉列表更新时，自动选择第一个道具
   useEffect(() => {

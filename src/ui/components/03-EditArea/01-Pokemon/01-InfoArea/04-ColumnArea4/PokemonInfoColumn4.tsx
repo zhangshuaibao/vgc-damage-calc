@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 // @ts-ignore
 import "./PokemonInfoColumn4.css";
@@ -7,7 +7,7 @@ import { usePokemonTranslation } from "../../../../../../contexts/usePokemonTran
 import SearchableDropdown, {
   DropdownItem,
 } from "../../../../../widgets/SearchableDropdown/SearchableDropdown";
-import { ShowdownDataService } from "../../../../../../services/showdown.data.service";
+import { ShowdownDataService } from "../../../../../../services/showdown.utils/showdown.data.service";
 import { usePokemonMovesets } from "../../../../../../contexts/PokemonMovesetsContext";
 import { usePokemonState } from "../../../../../../contexts/PokemonStateContext";
 import { AppPinyin, normalizeString } from "../../../../../../utils";
@@ -213,6 +213,20 @@ const PokemonInfoColumn4: React.FC<EditAreaProps> = ({ isAttacker }) => {
     [movesUsageList, translateMove]
   );
 
+  const getMoveTypeSearchKey = useCallback(
+    (moveType: string) => {
+      const translatedType = translateType(moveType);
+      const translatedTypeShort = translateTypeShort(moveType);
+      const translatedTypeString = `${translatedType}|${translatedTypeShort}`;
+      return `${moveType}|${translatedTypeString}|${
+        language === "zh"
+          ? `${AppPinyin.getSearchKeywords(translatedTypeString)}`
+          : ""
+      }`;
+    },
+    [language, translateType, translateTypeShort],
+  );
+
   // 获取技能列表并根据使用率排序
   const moveDropdownItems: DropdownItem[] = useMemo(() => {
     const moves = ShowdownDataService.Moves;
@@ -259,19 +273,12 @@ const PokemonInfoColumn4: React.FC<EditAreaProps> = ({ isAttacker }) => {
           (moveData as MoveData).name || moveKey
         );
         const moveType = (moveData as MoveData).type.toLowerCase();
-        const translatedType = translateType(moveType);
-        const translatedTypeShort = translateTypeShort(moveType);
+        const moveTypeSearchKey = getMoveTypeSearchKey(moveType);
         const searchKey = `${moveKey}|${translatedMove}${
           language === "zh"
-            ? `|${AppPinyin.getSearchKeywords(
-                translatedMove
-              )}|${AppPinyin.getSearchKeywords(translatedTypeShort)}`
+            ? `|${AppPinyin.getSearchKeywords(translatedMove)}`
             : ""
-        }|${moveType}|${translatedType}${
-          language === "zh"
-            ? `|${AppPinyin.getSearchKeywords(translatedType)}`
-            : ""
-        }`;
+        }|${moveTypeSearchKey}`;
 
         const isAvailable =
           (learnsets ? availableMoveIds.has(moveKey) : true) ||
@@ -292,16 +299,12 @@ const PokemonInfoColumn4: React.FC<EditAreaProps> = ({ isAttacker }) => {
         (moveData as MoveData).name || moveKey
       );
       const moveType = (moveData as MoveData).type.toLowerCase();
-      const translatedType = translateType(moveType);
+      const moveTypeSearchKey = getMoveTypeSearchKey(moveType);
       const searchKey = `${moveKey}|${translatedMove}|${
         language === "zh"
           ? `${AppPinyin.getSearchKeywords(translatedMove)}`
           : ""
-      }|${moveType}|${translatedType}${
-        language === "zh"
-          ? `|${AppPinyin.getSearchKeywords(translatedType)}`
-          : ""
-      }`;
+      }|${moveTypeSearchKey}`;
       const isAvailable =
         (learnsets ? availableMoveIds.has(moveKey) : true) ||
         (moveData as MoveData).name === "Struggle";
@@ -314,7 +317,15 @@ const PokemonInfoColumn4: React.FC<EditAreaProps> = ({ isAttacker }) => {
         isAvailable: isAvailable,
       };
     });
-  }, [pokemonSpecies, MoveDisplayContentFC, MoveDropdownItem]);
+  }, [
+    pokemonSpecies,
+    MoveDisplayContentFC,
+    MoveDropdownItem,
+    language,
+    movesUsageList,
+    getMoveTypeSearchKey,
+    translateMove,
+  ]);
 
   // 当招式下拉列表更新时，自动选择前四个招式
   useEffect(() => {

@@ -1,7 +1,7 @@
 #!/bin/bash
 export http_proxy="127.0.0.1:3213"
 export https_proxy="127.0.0.1:3213"
-
+mkdir -p src/vendors/smogon
 rm -rf src/vendors/smogon/damage-calc  src/vendors/smogon/damage-calc-dist src/vendors/smogon/pokemon-showdown
 cd src/vendors/smogon
 git clone https://github.com/smogon/damage-calc.git

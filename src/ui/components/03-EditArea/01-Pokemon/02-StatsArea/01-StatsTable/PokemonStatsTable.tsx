@@ -14,7 +14,7 @@ import {
   StatID,
   StatIDExceptHP,
 } from "../../../../../../vendors/smogon/damage-calc-dist/data/interface";
-import { ShowdownDataService } from "../../../../../../services/showdown.data.service";
+import { ShowdownDataService } from "../../../../../../services/showdown.utils/showdown.data.service";
 import { NatureData } from "../../../../../../vendors/smogon/pokemon-showdown/sim/dex-data";
 import { computeStat } from "../../../../../../utils/stats.utils";
 import { useTranslation } from "react-i18next";

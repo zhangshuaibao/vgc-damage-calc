@@ -1,7 +1,9 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import "./DisplayDamage.css";
 import { useDamageCompute } from "../../../../contexts/DamageComputeContext";
 import { useTranslation } from "react-i18next";
+import { useLanguage } from "../../../../contexts/LanguageContext";
+import { translationService } from "../../../../services/translation.service";
 
 interface DisplayDamageProps {
   className?: string;
@@ -10,15 +12,30 @@ interface DisplayDamageProps {
 export const DisplayDamage: React.FC<DisplayDamageProps> = ({ className }) => {
   const { isAttackerSelected, selectedResult } = useDamageCompute();
   const { t } = useTranslation(["app", "calc/damage_result"]);
+  const { language } = useLanguage();
   const [showSegments, setShowSegments] = useState(false);
-  const descriptionTokens = useMemo(
-    () => (selectedResult ? selectedResult.getFullDescTokens() : []),
-    [selectedResult]
-  );
-  const damageSummarySegments = useMemo(
-    () => (selectedResult ? selectedResult.getDamageSummarySegments() : []),
-    [selectedResult]
-  );
+  const [, setTranslationVersion] = useState(0);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    translationService.getTranslations(language).finally(() => {
+      if (isMounted) {
+        setTranslationVersion((version) => version + 1);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [language]);
+
+  const descriptionTokens = selectedResult
+    ? selectedResult.getFullDescTokens()
+    : [];
+  const damageSummarySegments = selectedResult
+    ? selectedResult.getDamageSummarySegments()
+    : [];
   const hasSegments = useMemo(
     () => !!selectedResult && selectedResult.hasMultiSegmentDamage(),
     [selectedResult]

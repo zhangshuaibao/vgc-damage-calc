@@ -11,7 +11,7 @@ import { confirmable, ContextAwareConfirmation } from "react-confirm";
 import ConfirmDialog, {
   type ConfirmPayload,
 } from "../ui/widgets/ConfirmDialog/ConfirmDialog";
-import { ShowdownDataService } from "../services/showdown.data.service";
+import { ShowdownDataService } from "../services/showdown.utils/showdown.data.service";
 import { Pokemon } from "../models/pokemon.calculator.model";
 import { useFormats } from "./FormatsContext";
 

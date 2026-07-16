@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import "./PokemonImage.css";
 import { usePokemonState } from "../../../../../contexts/PokemonStateContext";
-import { ShowdownDataService } from "../../../../../services/showdown.data.service";
+import { ShowdownDataService } from "../../../../../services/showdown.utils/showdown.data.service";
 import SmartImage from "../../../../widgets/SmartImage/SmartImage";
 import {
   getTypeColor,

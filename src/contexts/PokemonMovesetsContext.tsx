@@ -8,7 +8,7 @@ import React, {
   useEffect,
   useMemo,
 } from "react";
-import { ShowdownStatsService } from "../services/showdown.stats.service";
+import { UsagesService } from "../services/usages.service";
 import {
   ChaosNatureSpread1,
   ChaosSpread2,
@@ -318,7 +318,7 @@ const usePokemonMovesetsLogic = (pokemonId?: string) => {
       try {
         setLoading(true);
         setError(null);
-        const statsService = new ShowdownStatsService();
+        const statsService = new UsagesService();
 
         // 并行获取所有类型的数据
         const [

@@ -1,4 +1,4 @@
-import { ShowdownDataService } from "../services/showdown.data.service";
+import { ShowdownDataService } from "../services/showdown.utils/showdown.data.service";
 
 type StatId = "hp" | "atk" | "def" | "spa" | "spd" | "spe";
 

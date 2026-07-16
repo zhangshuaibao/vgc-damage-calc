@@ -6,7 +6,7 @@ import EditAreaProps from "../../../Props/EditAreaProps";
 import SearchableDropdown, {
   DropdownItem,
 } from "../../../../../widgets/SearchableDropdown/SearchableDropdown";
-import { ShowdownDataService } from "../../../../../../services/showdown.data.service";
+import { ShowdownDataService } from "../../../../../../services/showdown.utils/showdown.data.service";
 import { usePokemonMovesets } from "../../../../../../contexts/PokemonMovesetsContext";
 import {
   usePokemonState,

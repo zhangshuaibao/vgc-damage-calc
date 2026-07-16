@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useCallback } from "react";
+import React, { useMemo, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 // @ts-ignore
 import "./PokemonInfoColumn1.css";
@@ -8,20 +8,27 @@ import SearchableDropdown, {
   DropdownItem,
 } from "../../../../../widgets/SearchableDropdown/SearchableDropdown";
 import SmartImage from "../../../../../widgets/SmartImage/SmartImage";
-import { ShowdownDataService } from "../../../../../../services/showdown.data.service";
+import { ShowdownDataService } from "../../../../../../services/showdown.utils/showdown.data.service";
 import { AutoSelectDisableOptions } from "../../../../../../contexts/PokemonMovesetsContext";
 import { usePokemonState } from "../../../../../../contexts/PokemonStateContext";
 import { AppPinyin } from "../../../../../../utils/app.pinyin";
 import { useLanguage } from "../../../../../../contexts/LanguageContext";
 import { getTypeColor } from "../../../../../../utils/type.colors";
 import { SpeciesData } from "../../../../../../vendors/smogon/pokemon-showdown/sim/dex-species";
+import { MoveData } from "../../../../../../vendors/smogon/pokemon-showdown/sim/dex-moves";
 import { usePokemonUsage } from "../../../../../../contexts/PokemonUsageContext";
+import { useFormats } from "../../../../../../contexts/FormatsContext";
 
 const PokemonInfoColumn1: React.FC<EditAreaProps> = ({ isAttacker }) => {
   const tabBase = isAttacker ? 320000 : 330000;
   const { t } = useTranslation();
-  const { translatePokemon, translateType, translateTypeShort } =
-    usePokemonTranslation();
+  const {
+    translatePokemon,
+    translateType,
+    translateTypeShort,
+    translateAbility,
+    translateMove,
+  } = usePokemonTranslation();
   const {
     pokemonUsageList,
     pokemonUsageListUpdatedAttacker,
@@ -30,6 +37,7 @@ const PokemonInfoColumn1: React.FC<EditAreaProps> = ({ isAttacker }) => {
     setPokemonUsageListUpdatedDefender,
   } = usePokemonUsage();
   const { language } = useLanguage();
+  const { currentGame, currentGen, currentReg } = useFormats();
 
   // 使用新的Pokemon状态管理
   const {
@@ -75,6 +83,150 @@ const PokemonInfoColumn1: React.FC<EditAreaProps> = ({ isAttacker }) => {
     },
     [isMegaForme, pokemonSpecies],
   );
+
+  const getTranslatedSearchKey = useCallback(
+    (names: string[], translate: (name: string) => string): string =>
+      names
+        .map((name) => {
+          const translatedName = translate(name) || "";
+          return `${name}|${translatedName}${
+            language === "zh"
+              ? `|${AppPinyin.getSearchKeywords(translatedName)}`
+              : ""
+          }`;
+        })
+        .join("|"),
+    [language],
+  );
+
+  const getPokemonMoveSearchKey = useCallback(
+    (species?: SpeciesData): string => {
+      const moves = ShowdownDataService.Moves as Record<
+        string,
+        MoveData | undefined
+      >;
+      const learnsets = ShowdownDataService.getPokemonLearnsets(species);
+      const moveNames = Array.from(
+        new Set(
+          (learnsets || []).map((moveId) => moves[moveId]?.name || moveId),
+        ),
+      );
+      return getTranslatedSearchKey(moveNames, translateMove);
+    },
+    [getTranslatedSearchKey, translateMove],
+  );
+
+  const getPokemonAbilitySearchKey = useCallback(
+    (species?: SpeciesData): string => {
+      const abilityNames = Array.from(
+        new Set(
+          Object.values(species?.abilities || {}).filter(
+            (ability): ability is string =>
+              typeof ability === "string" && ability.length > 0,
+          ),
+        ),
+      );
+      return getTranslatedSearchKey(abilityNames, translateAbility);
+    },
+    [getTranslatedSearchKey, translateAbility],
+  );
+
+  const getPokemonTypeSearchKey = useCallback(
+    (species?: SpeciesData): string => {
+      const pokemonTypes = species?.types || [];
+      const pokemonTypeString = `${pokemonTypes.join(" ")}|${[...pokemonTypes]
+        .reverse()
+        .join(" ")}`;
+      const translatedPokemonTypes = pokemonTypes.map((type: string) =>
+        translateType(type),
+      );
+      const translatedPokemonTypesShort = pokemonTypes.map((type: string) =>
+        translateTypeShort(type),
+      );
+      const translatedPokemonTypesString = `${translatedPokemonTypes.join(
+        "",
+      )}|${[...translatedPokemonTypes]
+        .reverse()
+        .join("")}|${translatedPokemonTypesShort.join(
+        "",
+      )}|${[...translatedPokemonTypesShort].reverse().join("")}`;
+      return `${pokemonTypeString}|${translatedPokemonTypesString}|${
+        language === "zh"
+          ? `${AppPinyin.getSearchKeywords(translatedPokemonTypesString)}`
+          : ""
+      }`;
+    },
+    [language, translateType, translateTypeShort],
+  );
+
+  const extraSearchKeyCacheRef = useRef(new Map<string, string>());
+
+  useEffect(() => {
+    extraSearchKeyCacheRef.current.clear();
+  }, [
+    language,
+    translateAbility,
+    translateMove,
+    translateType,
+    translateTypeShort,
+    currentGame,
+    currentGen,
+    currentReg,
+  ]);
+
+  const getPokemonExtraSearchKey = useCallback(
+    (species?: SpeciesData, fallbackName = ""): string => {
+      const pokemonName = species?.name || fallbackName;
+      const cacheKey = `${currentGame ?? ""}:${currentGen}:${
+        currentReg ?? ""
+      }:${language}:${pokemonName}`;
+      const cachedSearchKey = extraSearchKeyCacheRef.current.get(cacheKey);
+      if (cachedSearchKey !== undefined) {
+        return cachedSearchKey;
+      }
+      const typeSearchKey = getPokemonTypeSearchKey(species);
+      const abilitySearchKey = getPokemonAbilitySearchKey(species);
+      const moveSearchKey = getPokemonMoveSearchKey(species);
+      const extraSearchKey = `${typeSearchKey}|${abilitySearchKey}|${moveSearchKey}`;
+      extraSearchKeyCacheRef.current.set(cacheKey, extraSearchKey);
+      return extraSearchKey;
+    },
+    [
+      getPokemonAbilitySearchKey,
+      getPokemonMoveSearchKey,
+      getPokemonTypeSearchKey,
+      currentGame,
+      currentGen,
+      currentReg,
+      language,
+    ],
+  );
+
+  const getPokemonBaseSearchKey = useCallback(
+    (species?: SpeciesData, fallbackName = ""): string => {
+      const pokemonName = species?.name || fallbackName;
+      const translatedName = translatePokemon(pokemonName) || "";
+      return `${pokemonName}|${translatedName}${
+        language === "zh"
+          ? `|${AppPinyin.getSearchKeywords(translatedName)}`
+          : ""
+      }`;
+    },
+    [language, translatePokemon],
+  );
+
+  const isPokemonAvailableInFormat = useCallback((species?: SpeciesData) => {
+    const key = (species?.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (!key) {
+      return true;
+    }
+    const formatsData = ShowdownDataService.FormatsData;
+    const formatData = formatsData[key as keyof typeof formatsData];
+    return (
+      !!formatData &&
+      (formatData.isNonstandard == null)
+    );
+  }, []);
 
   // 自定义宝可梦下拉项组件
   const PokemonDropdownItem: React.FC<{ item: DropdownItem }> = useMemo(
@@ -143,11 +295,6 @@ const PokemonInfoColumn1: React.FC<EditAreaProps> = ({ isAttacker }) => {
   // 获取宝可梦列表并根据使用率排序
   const pokemonDropdownItems: DropdownItem[] = useMemo(() => {
     const speciesData = ShowdownDataService.DisplaySpeciesList;
-    const permittedPokemonIds = new Set(
-      ShowdownDataService.getPermittedPokemons(),
-    );
-    const normalizePokemonId = (value?: string): string =>
-      (value ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
     // 创建使用率映射
     const usageMap = new Map<string, number>();
@@ -157,61 +304,56 @@ const PokemonInfoColumn1: React.FC<EditAreaProps> = ({ isAttacker }) => {
 
     // 根据使用率排序宝可梦列表
     const sortedPokemonList = [...Object.keys(speciesData)].sort((a, b) => {
-      const pokemonA = speciesData[a as keyof typeof speciesData]?.name || a;
-      const pokemonB = speciesData[b as keyof typeof speciesData]?.name || b;
+      const speciesA = speciesData[a as keyof typeof speciesData] as
+        | SpeciesData
+        | undefined;
+      const speciesB = speciesData[b as keyof typeof speciesData] as
+        | SpeciesData
+        | undefined;
+      const isAvailableA = isPokemonAvailableInFormat(speciesA);
+      const isAvailableB = isPokemonAvailableInFormat(speciesB);
+      if (isAvailableA !== isAvailableB) {
+        return isAvailableA ? -1 : 1;
+      }
+
+      const pokemonA = speciesA?.name || a;
+      const pokemonB = speciesB?.name || b;
       const rankA = usageMap.get(pokemonA) || 9999; // 没有使用率数据的排在后面
       const rankB = usageMap.get(pokemonB) || 9999;
       return rankA - rankB; // 按排名升序排列（排名越小越靠前）
     });
 
     return sortedPokemonList.map((pokemonKey) => {
-      const pokemonData = speciesData[pokemonKey as keyof typeof speciesData];
-      const pokemonName = pokemonData?.name || pokemonKey;
-      const baseSpeciesName = ShowdownDataService.getBaseSpeciesName(
-        pokemonData as SpeciesData,
-      );
-      const isAvailable =
-        permittedPokemonIds.has(pokemonKey) ||
-        permittedPokemonIds.has(normalizePokemonId(baseSpeciesName));
-      const pokemonTypes = (pokemonData as SpeciesData).types || [];
-      const pokemonTypeString = `${pokemonTypes.join(" ")}|${[
-        ...pokemonTypes,
-      ]
-        .reverse()
-        .join(" ")}`;
-      const translatePokemonTypes = pokemonTypes.map((type: string) =>
-        translateType(type),
-      );
-      const translatePokemonTypesShort = pokemonTypes.map((type: string) =>
-        translateTypeShort(type),
-      );
-      const translatePokemonTypesString = `${translatePokemonTypes.join(
-        "",
-      )}|${[...translatePokemonTypes]
-        .reverse()
-        .join("")}|${translatePokemonTypesShort.join(
-        "",
-      )}|${[...translatePokemonTypesShort].reverse().join("")}`;
+      const pokemonData = speciesData[
+        pokemonKey as keyof typeof speciesData
+      ] as SpeciesData;
+      const pokemonName = pokemonData.name || pokemonKey;
+      const isAvailable = isPokemonAvailableInFormat(pokemonData);
       const translatedName = translatePokemon(pokemonName) || "";
-      const searchKey = `${pokemonName}|${translatedName}${
-        language === "zh"
-          ? `|${AppPinyin.getSearchKeywords(translatedName)}`
-          : ""
-      }|${pokemonTypeString}|${translatePokemonTypesString}|${
-        language === "zh"
-          ? `${AppPinyin.getSearchKeywords(translatePokemonTypesString)}`
-          : ""
-      }`;
+      const searchKey = getPokemonBaseSearchKey(
+        pokemonData as SpeciesData,
+        pokemonName,
+      );
+      const lazySearchKey = () =>
+        getPokemonExtraSearchKey(pokemonData as SpeciesData, pokemonName);
       return {
         key: pokemonName,
         value: pokemonData,
         searchKey: searchKey,
+        lazySearchKey: lazySearchKey,
         displayContentFC: translatedName,
         dropdownItemFC: PokemonDropdownItem,
         isAvailable: isAvailable,
       };
     });
-  }, [PokemonDropdownItem]);
+  }, [
+    PokemonDropdownItem,
+    getPokemonBaseSearchKey,
+    getPokemonExtraSearchKey,
+    isPokemonAvailableInFormat,
+    pokemonUsageList,
+    translatePokemon,
+  ]);
 
   useEffect(() => {
     if (isAttacker && !pokemonUsageListUpdatedAttacker) {
@@ -257,12 +399,6 @@ const PokemonInfoColumn1: React.FC<EditAreaProps> = ({ isAttacker }) => {
       return [];
     }
 
-    // 创建使用率映射
-    const usageMap = new Map<string, number>();
-    pokemonUsageList.forEach((usage) => {
-      usageMap.set(usage.pokemon, usage.rank);
-    });
-
     const sortedPokemonList = [...Object.keys(speciesData)].sort((a, b) => {
       const indexA = (rootFormeSpecies.value.formeOrder || []).indexOf(a);
       const indexB = (rootFormeSpecies.value.formeOrder || []).indexOf(b);
@@ -270,51 +406,35 @@ const PokemonInfoColumn1: React.FC<EditAreaProps> = ({ isAttacker }) => {
     });
 
     return sortedPokemonList.map((pokemonKey) => {
-      const pokemonData = speciesData[pokemonKey as keyof typeof speciesData];
-      const pokemonName = pokemonData?.name || pokemonKey;
-      const pokemonTypes = (pokemonData as SpeciesData).types || [];
-      const pokemonTypeString = `${pokemonTypes.join(" ")}|${[
-        ...pokemonTypes,
-      ]
-        .reverse()
-        .join(" ")}`;
-      const translatePokemonTypes = pokemonTypes.map((type: string) =>
-        translateType(type),
-      );
-      const translatePokemonTypesShort = pokemonTypes.map((type: string) =>
-        translateTypeShort(type),
-      );
-      const translatePokemonTypesString = `${translatePokemonTypes.join(
-        "",
-      )}|${[...translatePokemonTypes]
-        .reverse()
-        .join("")}|${translatePokemonTypesShort.join(
-        "",
-      )}|${[...translatePokemonTypesShort].reverse().join("")}`;
+      const pokemonData = speciesData[
+        pokemonKey as keyof typeof speciesData
+      ] as SpeciesData;
+      const pokemonName = pokemonData.name || pokemonKey;
+      const isAvailable = isPokemonAvailableInFormat(pokemonData);
       const translatedName = translatePokemon(pokemonName) || "";
-      const searchKey = `${pokemonName}|${translatedName}${
-        language === "zh"
-          ? `|${AppPinyin.getSearchKeywords(translatedName)}`
-          : ""
-      }|${pokemonTypeString}|${translatePokemonTypesString}${
-        language === "zh"
-          ? `|${AppPinyin.getSearchKeywords(translatePokemonTypesString)}`
-          : ""
-      }`;
+      const searchKey = getPokemonBaseSearchKey(
+        pokemonData as SpeciesData,
+        pokemonName,
+      );
+      const lazySearchKey = () =>
+        getPokemonExtraSearchKey(pokemonData as SpeciesData, pokemonName);
       return {
         key: pokemonName,
         value: pokemonData,
         searchKey: searchKey,
+        lazySearchKey: lazySearchKey,
         displayContentFC: translatedName,
         dropdownItemFC: PokemonDropdownItem,
+        isAvailable: isAvailable,
       };
     });
   }, [
     rootFormeSpecies,
-    pokemonUsageList,
+    PokemonDropdownItem,
+    getPokemonBaseSearchKey,
+    getPokemonExtraSearchKey,
+    isPokemonAvailableInFormat,
     translatePokemon,
-    translateType,
-    translateTypeShort,
   ]);
 
   return (

@@ -3,7 +3,7 @@ import {
   Result as CalculatorResult,
 } from "../vendors/smogon/damage-calc-dist/index";
 import { Field } from "../vendors/smogon/damage-calc-dist/field";
-import { ShowdownDataService } from "../services/showdown.data.service";
+import { ShowdownDataService } from "../services/showdown.utils/showdown.data.service";
 import { t } from "i18next";
 import i18n, { Language } from "../i18n/i18n";
 import { translationService } from "../services/translation.service";
@@ -20,6 +20,9 @@ export interface ResultDescriptionToken {
     | "evNegative"
     | "evLabel"
     | "move"
+    | "terrain"
+    | "weather"
+    | "aura"
     | "vs"
     | "pokemon";
   text: string;
@@ -137,6 +140,7 @@ export class Result extends CalculatorResult {
     kind: ResultDescriptionToken["kind"] = "text",
     moveType?: string,
     pokemonTypes?: string[],
+    effectType?: string,
   ): ResultDescriptionToken {
     const classNames = ["display-damage__token"];
     if (kind === "evValue") {
@@ -149,6 +153,12 @@ export class Result extends CalculatorResult {
       classNames.push("display-damage__token--ev-label");
     } else if (kind === "move") {
       classNames.push("display-damage__token--move");
+    } else if (kind === "terrain") {
+      classNames.push("display-damage__token--terrain");
+    } else if (kind === "weather") {
+      classNames.push("display-damage__token--weather");
+    } else if (kind === "aura") {
+      classNames.push("display-damage__token--aura");
     } else if (kind === "pokemon") {
       classNames.push("display-damage__token--pokemon");
     } else if (kind === "vs") {
@@ -158,6 +168,8 @@ export class Result extends CalculatorResult {
     let style: CSSProperties | undefined;
     if (kind === "move" && moveType) {
       style = { color: getTypeColor(moveType) };
+    } else if ((kind === "terrain" || kind === "weather" || kind === "aura") && effectType) {
+      style = { color: getTypeColor(effectType) };
     } else if (kind === "pokemon") {
       style = this.getPokemonTokenStyle(pokemonTypes);
     }
@@ -170,6 +182,53 @@ export class Result extends CalculatorResult {
       className: classNames.join(" "),
       ...(style ? { style } : {}),
     };
+  }
+
+  private getTerrainType(terrain?: string): string | undefined {
+    switch (terrain?.toLowerCase().replaceAll(" ", "")) {
+      case "electric":
+        return "electric";
+      case "grassy":
+        return "grass";
+      case "psychic":
+        return "psychic";
+      case "misty":
+        return "fairy";
+      default:
+        return undefined;
+    }
+  }
+
+  private getWeatherType(weather?: string): string | undefined {
+    switch (weather?.toLowerCase().replaceAll(" ", "")) {
+      case "sun":
+      case "harshsunshine":
+        return "fire";
+      case "rain":
+      case "heavyrain":
+        return "water";
+      case "sand":
+        return "rock";
+      case "snow":
+        return "ice";
+      case "strongwinds":
+        return "flying";
+      default:
+        return undefined;
+    }
+  }
+
+  private getAuraType(ability?: string): string | undefined {
+    switch (ability?.toLowerCase().replaceAll(" ", "")) {
+      case "fairyaura":
+        return "fairy";
+      case "darkaura":
+        return "dark";
+      case "aurabreak":
+        return "dragon";
+      default:
+        return undefined;
+    }
   }
 
   private getPokemonTypes(
@@ -247,9 +306,26 @@ export class Result extends CalculatorResult {
       kind: ResultDescriptionToken["kind"] = "text",
       moveType?: string,
       pokemonTypes?: string[],
+      effectType?: string,
     ) => {
       descriptionTokens.push(
-        this.createDescriptionToken(text, kind, moveType, pokemonTypes),
+        this.createDescriptionToken(
+          text,
+          kind,
+          moveType,
+          pokemonTypes,
+          effectType,
+        ),
+      );
+    };
+    const pushAbilityText = (ability: string) => {
+      const auraType = this.getAuraType(ability);
+      pushText(
+        translationService.translateAbilitySync(lang, ability),
+        auraType ? "aura" : "text",
+        undefined,
+        undefined,
+        auraType,
       );
     };
     const pushEvText = (evText?: string) => {
@@ -274,9 +350,7 @@ export class Result extends CalculatorResult {
       );
     }
     if (rawDesc.attackerAbility != null) {
-      pushText(
-        translationService.translateAbilitySync(lang, rawDesc.attackerAbility!),
-      );
+      pushAbilityText(rawDesc.attackerAbility!);
     }
     if (rawDesc.isBurned) {
       pushText(t("damageResult.burned"));
@@ -367,9 +441,7 @@ export class Result extends CalculatorResult {
       );
     }
     if (rawDesc.defenderAbility != null) {
-      pushText(
-        translationService.translateAbilitySync(lang, rawDesc.defenderAbility!),
-      );
+      pushAbilityText(rawDesc.defenderAbility!);
     }
     if (rawDesc.isDefenderDynamaxed) {
       pushText(t("damageResult.dynamax"));
@@ -401,11 +473,19 @@ export class Result extends CalculatorResult {
     if (rawDesc.terrain) {
       pushText(
         t("damageResult." + rawDesc.terrain.toLowerCase().replaceAll(" ", "")),
+        "terrain",
+        undefined,
+        undefined,
+        this.getTerrainType(rawDesc.terrain),
       );
     }
     if (rawDesc.weather) {
       pushText(
         t("damageResult." + rawDesc.weather.toLowerCase().replaceAll(" ", "")),
+        "weather",
+        undefined,
+        undefined,
+        this.getWeatherType(rawDesc.weather),
       );
     }
     if (rawDesc.isFlowerGiftDefender) {
@@ -444,7 +524,8 @@ export class Result extends CalculatorResult {
     const damageStrings2: string[] = [];
     if (this.damage != null && this.damage !== 0) {
       const range = this.range();
-      const rangeText = `${range[0]} - ${range[1]} (${(
+      const damageRangeText = `${range[0]} - ${range[1]} `;
+      const damagePercentText = `(${(
         (range[0] /
           (this.defender.stats.hp *
             (this.defender.isDynamaxed === true ? 2 : 1))) *
@@ -455,10 +536,17 @@ export class Result extends CalculatorResult {
             (this.defender.isDynamaxed === true ? 2 : 1))) *
         100
       ).toFixed(2)}%)`;
+      const rangeText = `${damageRangeText}${damagePercentText}`;
       damageStrings2.push(rangeText);
       damageSegments.push(
         this.createSummarySegment(
-          rangeText,
+          damageRangeText,
+          "display-damage__summary-range",
+        ),
+      );
+      damageSegments.push(
+        this.createSummarySegment(
+          damagePercentText,
           "display-damage__summary-range",
           true,
         ),
@@ -529,7 +617,6 @@ export class Result extends CalculatorResult {
               this.createSummarySegment(
                 guaranteedText,
                 "display-damage__summary-suffix",
-                true,
               ),
             );
           } else {
@@ -542,7 +629,7 @@ export class Result extends CalculatorResult {
               this.createSummarySegment(
                 chanceText,
                 "display-damage__summary-suffix",
-                true,
+                kochance.n !== 1,
               ),
             );
           }
@@ -676,7 +763,6 @@ export class Result extends CalculatorResult {
         this.createSummarySegment(
           t("damageResult.kochance_guaranteed"),
           "display-damage__summary-suffix",
-          true,
         ),
       );
     } else if (chanceVal !== -100) {
@@ -687,7 +773,7 @@ export class Result extends CalculatorResult {
             `${chanceVal}%`,
           ),
           "display-damage__summary-suffix",
-          true,
+          hits !== 1,
         ),
       );
     }

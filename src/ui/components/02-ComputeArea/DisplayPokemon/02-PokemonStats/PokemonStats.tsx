@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import "./PokemonStats.css";
 import { useDamageCompute } from "../../../../../contexts/DamageComputeContext";
-import { ShowdownDataService } from "../../../../../services/showdown.data.service";
+import { ShowdownDataService } from "../../../../../services/showdown.utils/showdown.data.service";
 import SmartImage from "../../../../widgets/SmartImage/SmartImage";
 import { useLanguage } from "../../../../../contexts/LanguageContext";
 import { NATURES } from "../../../../../vendors/smogon/damage-calc-dist/data/natures";

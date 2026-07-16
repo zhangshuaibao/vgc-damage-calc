@@ -1,16 +1,43 @@
-import React, { useState, useRef, useEffect, useMemo, useLayoutEffect } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useLayoutEffect,
+  useDeferredValue,
+} from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+// @ts-ignore
 import "./SearchableDropdown.css";
 
 export interface DropdownItem {
   key: string;
   value: unknown;
   searchKey?: string;
+  lazySearchKey?: () => string;
   displayContentFC?: string | React.FC<{ item: DropdownItem }>;
   dropdownItemFC?: React.FC<{ item: DropdownItem }>;
   disabled?: boolean;
 }
+
+interface IndexedDropdownItem {
+  item: DropdownItem;
+  searchText: string;
+}
+
+const normalizeSearchText = (value: unknown): string =>
+  String(value ?? "").trim().toLowerCase();
+
+const tokenizeSearchTerm = (value: string): string[] =>
+  Array.from(
+    new Set(
+      value
+        .split(/[，,|\s]+/)
+        .map((term) => normalizeSearchText(term))
+        .filter((term) => term.length > 0),
+    ),
+  );
 
 interface SearchableDropdownProps {
   items: DropdownItem[];
@@ -47,7 +74,11 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const deferredSearchTerm = useDeferredValue(searchTerm);
   const [selectedItem, setSelectedItem] = useState<DropdownItem | null>(null);
+  const lazySearchTextCacheRef = useRef<WeakMap<DropdownItem, string>>(
+    new WeakMap(),
+  );
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownMenuRef = useRef<HTMLDivElement>(null);
@@ -196,16 +227,61 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
     }
   }, [value, items]);
 
-  const filteredItems = useMemo(() => items.filter((item) => {
-    const rawText = item.searchKey || item.key;
-    const text = String(rawText).toLowerCase();
-    const terms = searchTerm
-      .split(/[，,]/)
-      .map((s) => s.trim().toLowerCase())
-      .filter((s) => s.length > 0);
-    if (terms.length === 0) return true;
-    return terms.every((term) => text.includes(term));
-  }), [items, searchTerm]);
+  useEffect(() => {
+    lazySearchTextCacheRef.current = new WeakMap();
+  }, [items]);
+
+  const indexedItems = useMemo<IndexedDropdownItem[]>(
+    () =>
+      items.map((item) => {
+        const rawSearchKey = item.searchKey || item.key;
+        const segments = String(rawSearchKey)
+          .split("|")
+          .map((segment) => normalizeSearchText(segment))
+          .filter((segment) => segment.length > 0);
+        return {
+          item,
+          searchText: Array.from(new Set(segments)).join("|"),
+        };
+      }),
+    [items],
+  );
+
+  const searchTerms = useMemo(
+    () => tokenizeSearchTerm(deferredSearchTerm),
+    [deferredSearchTerm],
+  );
+
+  const filteredItems = useMemo(() => {
+    if (searchTerms.length === 0) {
+      return items;
+    }
+
+    const getLazySearchText = (item: DropdownItem): string => {
+      const cached = lazySearchTextCacheRef.current.get(item);
+      if (cached !== undefined) {
+        return cached;
+      }
+      const lazySearchText = item.lazySearchKey
+        ? normalizeSearchText(item.lazySearchKey())
+        : "";
+      lazySearchTextCacheRef.current.set(item, lazySearchText);
+      return lazySearchText;
+    };
+
+    return indexedItems
+      .filter(({ item, searchText }) => {
+        let lazySearchText: string | undefined;
+        return searchTerms.every((term) => {
+          if (searchText.includes(term)) {
+            return true;
+          }
+          lazySearchText ??= getLazySearchText(item);
+          return lazySearchText.includes(term);
+        });
+      })
+      .map(({ item }) => item);
+  }, [indexedItems, items, searchTerms]);
 
   // 处理点击外部关闭下拉框
   useEffect(() => {

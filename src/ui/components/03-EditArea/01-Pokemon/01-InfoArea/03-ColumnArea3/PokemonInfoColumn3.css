@@ -219,6 +219,22 @@
   white-space: nowrap;
 }
 
+.pi_col3-item-unavailable {
+  color: var(--text-disabled) !important;
+  opacity: 0.6;
+}
+
+.pi_col3-item-unavailable-avatar {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+.sdd-dropdown-item:hover .pi_col3-item-unavailable,
+.sdd-dropdown-item.sdd-selected .pi_col3-item-unavailable {
+  color: var(--text-disabled) !important;
+  opacity: 0.6 !important;
+}
+
 /* Column3 Item下拉框显示样式 */
 .pi_col3-item-display-content {
   flex: 1;

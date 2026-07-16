@@ -1,55 +1,52 @@
-import AppConstants from "../utils/app.constants";
-import { Abilities as BaseAbilities } from "../vendors/smogon/pokemon-showdown/data/abilities";
-import { Items as BaseItems } from "../vendors/smogon/pokemon-showdown/data/items";
-import { Learnsets as BaseLearnsets } from "../vendors/smogon/pokemon-showdown/data/learnsets";
-import { Moves as BaseShowdownMoves } from "../vendors/smogon/pokemon-showdown/data/moves";
-import { Natures as BaseNatures } from "../vendors/smogon/pokemon-showdown/data/natures";
-import { Pokedex as BasePokedex } from "../vendors/smogon/pokemon-showdown/data/pokedex";
-import { TypeChart as BaseTypeChart } from "../vendors/smogon/pokemon-showdown/data/typechart";
-import { Abilities as Gen9PreDlcAbilities } from "../vendors/smogon/pokemon-showdown/data/mods/gen9predlc/abilities";
-import { Items as Gen9PreDlcItems } from "../vendors/smogon/pokemon-showdown/data/mods/gen9predlc/items";
-import { Moves as Gen9PreDlcMoves } from "../vendors/smogon/pokemon-showdown/data/mods/gen9predlc/moves";
-import { Pokedex as Gen9PreDlcPokedex } from "../vendors/smogon/pokemon-showdown/data/mods/gen9predlc/pokedex";
-import { Abilities as Gen9Dlc1Abilities } from "../vendors/smogon/pokemon-showdown/data/mods/gen9dlc1/abilities";
-import { Items as Gen9Dlc1Items } from "../vendors/smogon/pokemon-showdown/data/mods/gen9dlc1/items";
-import { Moves as Gen9Dlc1Moves } from "../vendors/smogon/pokemon-showdown/data/mods/gen9dlc1/moves";
-import { Pokedex as Gen9Dlc1Pokedex } from "../vendors/smogon/pokemon-showdown/data/mods/gen9dlc1/pokedex";
-import { TypeChart as Gen9Dlc1TypeChart } from "../vendors/smogon/pokemon-showdown/data/mods/gen9dlc1/typechart";
-import { Abilities as ChampionsAbilities } from "../vendors/smogon/pokemon-showdown/data/mods/champions/abilities";
-import { Items as ChampionsItems } from "../vendors/smogon/pokemon-showdown/data/mods/champions/items";
-import { Learnsets as ChampionsLearnsets } from "../vendors/smogon/pokemon-showdown/data/mods/champions/learnsets";
-import { Moves as ChampionsMoves } from "../vendors/smogon/pokemon-showdown/data/mods/champions/moves";
+import AppConstants from "../../utils/app.constants";
+import { Abilities as BaseAbilities } from "../../vendors/smogon/pokemon-showdown/data/abilities";
+import { Items as BaseItems } from "../../vendors/smogon/pokemon-showdown/data/items";
+import { Learnsets as BaseLearnsets } from "../../vendors/smogon/pokemon-showdown/data/learnsets";
+import { Moves as BaseShowdownMoves } from "../../vendors/smogon/pokemon-showdown/data/moves";
+import { Natures as BaseNatures } from "../../vendors/smogon/pokemon-showdown/data/natures";
+import { Pokedex as BasePokedex } from "../../vendors/smogon/pokemon-showdown/data/pokedex";
+import { TypeChart as BaseTypeChart } from "../../vendors/smogon/pokemon-showdown/data/typechart";
+import { FormatsData as BaseFormatsData } from "../../vendors/smogon/pokemon-showdown/data/formats-data";
+
+import { Abilities as ChampionsAbilities } from "../../vendors/smogon/pokemon-showdown/data/mods/champions/abilities";
+import { Items as ChampionsItems } from "../../vendors/smogon/pokemon-showdown/data/mods/champions/items";
+import { Learnsets as ChampionsLearnsets } from "../../vendors/smogon/pokemon-showdown/data/mods/champions/learnsets";
+import { Moves as ChampionsMoves } from "../../vendors/smogon/pokemon-showdown/data/mods/champions/moves";
+import { FormatsData as ChampionsFormatsData } from "../../vendors/smogon/pokemon-showdown/data/mods/champions/formats-data";
+import { Items as ChampionsMaItems } from "../../vendors/smogon/pokemon-showdown/data/mods/championsregma/items";
+import { FormatsData as ChampionsMaFormatsData } from "../../vendors/smogon/pokemon-showdown/data/mods/championsregma/formats-data";
 import {
   AbilityData,
   AbilityDataTable,
-} from "../vendors/smogon/pokemon-showdown/sim/dex-abilities";
+} from "../../vendors/smogon/pokemon-showdown/sim/dex-abilities";
 import {
   NatureData,
   NatureDataTable,
   TypeDataTable,
-} from "../vendors/smogon/pokemon-showdown/sim/dex-data";
+} from "../../vendors/smogon/pokemon-showdown/sim/dex-data";
 import {
   ItemData,
   ItemDataTable,
-} from "../vendors/smogon/pokemon-showdown/sim/dex-items";
+} from "../../vendors/smogon/pokemon-showdown/sim/dex-items";
 import {
   MoveData,
   MoveDataTable,
-} from "../vendors/smogon/pokemon-showdown/sim/dex-moves";
+} from "../../vendors/smogon/pokemon-showdown/sim/dex-moves";
 import {
   SpeciesData,
   SpeciesDataTable,
-} from "../vendors/smogon/pokemon-showdown/sim/dex-species";
+} from "../../vendors/smogon/pokemon-showdown/sim/dex-species";
+import { ModdedSpeciesFormatsDataTable } from "../../vendors/smogon/pokemon-showdown/sim/dex-species";
 
 import {
   GenerationNum,
   calculate as CalculatorCalculate,
   Move,
   Field,
-} from "../vendors/smogon/damage-calc-dist/index";
-import type { Damage } from "../vendors/smogon/damage-calc-dist/result";
-import { Pokemon } from "../models/pokemon.calculator.model";
-import { Result } from "../models/result.calculator.model";
+} from "../../vendors/smogon/damage-calc-dist/index";
+import type { Damage } from "../../vendors/smogon/damage-calc-dist/result";
+import { Pokemon } from "../../models/pokemon.calculator.model";
+import { Result } from "../../models/result.calculator.model";
 
 // 工具函数
 export class ShowdownDataService {
@@ -57,6 +54,7 @@ export class ShowdownDataService {
   static readonly NoAbility: AbilityData = { num: 0, name: "(No Ability)" };
   private static currentGame: string | undefined;
   private static currentGen: number | undefined;
+  private static currentReg: string | undefined;
   private static rawAbilitiesCache: AbilityDataTable | undefined;
   private static rawItemsCache: ItemDataTable | undefined;
   private static rawLearnsetsCache: typeof BaseLearnsets | undefined;
@@ -64,10 +62,14 @@ export class ShowdownDataService {
   private static rawNaturesCache: NatureDataTable | undefined;
   private static rawPokedexCache: SpeciesDataTable | undefined;
   private static rawTypeChartCache: TypeDataTable | undefined;
+  private static rawModdedSpeciesFormatsCache:
+    | ModdedSpeciesFormatsDataTable
+    | undefined;
 
-  static setCurrentGameEnv(game?: string, gen?: number): void {
+  static setCurrentGameEnv(game?: string, gen?: number, reg?: string): void {
     ShowdownDataService.currentGame = game;
     ShowdownDataService.currentGen = gen;
+    ShowdownDataService.currentReg = reg;
     ShowdownDataService.initializeRawDataCaches();
   }
 
@@ -126,45 +128,28 @@ export class ShowdownDataService {
   private static initializeRawDataCaches(): void {
     switch (ShowdownDataService.currentGame) {
       case "SV":
-        ShowdownDataService.rawAbilitiesCache = ShowdownDataService.mergeTables(
-          BaseAbilities,
-          Gen9PreDlcAbilities,
-          Gen9Dlc1Abilities,
-        );
-        ShowdownDataService.rawItemsCache = ShowdownDataService.mergeTables(
-          BaseItems,
-          Gen9PreDlcItems,
-          Gen9Dlc1Items,
-        );
+        ShowdownDataService.rawAbilitiesCache =
+          ShowdownDataService.mergeTables(BaseAbilities);
+        ShowdownDataService.rawItemsCache =
+          ShowdownDataService.mergeTables(BaseItems);
         ShowdownDataService.rawLearnsetsCache =
           ShowdownDataService.mergeTables(BaseLearnsets);
-        ShowdownDataService.rawMovesCache = ShowdownDataService.mergeTables(
-          BaseShowdownMoves,
-          Gen9PreDlcMoves,
-          Gen9Dlc1Moves,
-        ) as MoveDataTable;
-        ShowdownDataService.rawNaturesCache = BaseNatures;
-        ShowdownDataService.rawPokedexCache = ShowdownDataService.mergeTables(
-          BasePokedex,
-          Gen9PreDlcPokedex,
-          Gen9Dlc1Pokedex,
-        ) as SpeciesDataTable;
-        ShowdownDataService.rawTypeChartCache = ShowdownDataService.mergeTable(
-          BaseTypeChart,
-          Gen9Dlc1TypeChart,
-        ) as TypeDataTable;
+        ShowdownDataService.rawMovesCache =
+          ShowdownDataService.mergeTables(BaseShowdownMoves);
+        ShowdownDataService.rawNaturesCache =
+          ShowdownDataService.mergeTables(BaseNatures);
+        ShowdownDataService.rawPokedexCache =
+          ShowdownDataService.mergeTables(BasePokedex);
+        ShowdownDataService.rawTypeChartCache =
+          ShowdownDataService.mergeTables(BaseTypeChart);
+        ShowdownDataService.rawModdedSpeciesFormatsCache =
+          ShowdownDataService.mergeTables(BaseFormatsData);
         return;
       case "Champions":
         ShowdownDataService.rawAbilitiesCache = ShowdownDataService.mergeTables(
           BaseAbilities,
           ChampionsAbilities,
         );
-        ShowdownDataService.rawItemsCache = ShowdownDataService.mergeTables(
-          BaseItems,
-          ChampionsItems,
-        );
-        ShowdownDataService.rawLearnsetsCache =
-          ShowdownDataService.mergeTables(ChampionsLearnsets);
         ShowdownDataService.rawMovesCache = ShowdownDataService.mergeTables(
           BaseShowdownMoves,
           ChampionsMoves,
@@ -172,6 +157,26 @@ export class ShowdownDataService {
         ShowdownDataService.rawNaturesCache = BaseNatures;
         ShowdownDataService.rawPokedexCache = BasePokedex;
         ShowdownDataService.rawTypeChartCache = BaseTypeChart;
+        ShowdownDataService.rawLearnsetsCache =
+          ShowdownDataService.mergeTables(ChampionsLearnsets);
+        switch (ShowdownDataService.currentReg) {
+          case "Gen9ChampionsVGC2026RegMA":
+            ShowdownDataService.rawItemsCache = ShowdownDataService.mergeTables(
+              BaseItems,
+              ChampionsItems,
+              ChampionsMaItems,
+            );
+            ShowdownDataService.rawModdedSpeciesFormatsCache =
+              ChampionsMaFormatsData;
+            break;
+          default:
+            ShowdownDataService.rawItemsCache = ShowdownDataService.mergeTables(
+              BaseItems,
+              ChampionsItems,
+            );
+            ShowdownDataService.rawModdedSpeciesFormatsCache =
+              ChampionsFormatsData;
+        }
         return;
       default:
         ShowdownDataService.rawAbilitiesCache = BaseAbilities;
@@ -568,14 +573,17 @@ export class ShowdownDataService {
     );
   }
 
+  static get FormatsData(): ModdedSpeciesFormatsDataTable {
+    return ShowdownDataService.rawModdedSpeciesFormatsCache || {};
+  }
+
   static getBaseSpeciesName(species?: SpeciesData): string | undefined {
-        var baseSpeciesName =
-          species?.baseSpecies;
-        if (species?.name === "Floette-Mega") {
-          baseSpeciesName = "Floette-Eternal";
-        }else if (species?.name === "Floette-Eternal"){
-          baseSpeciesName = undefined;
-        }
+    var baseSpeciesName = species?.baseSpecies;
+    if (species?.name === "Floette-Mega") {
+      baseSpeciesName = "Floette-Eternal";
+    } else if (species?.name === "Floette-Eternal") {
+      baseSpeciesName = undefined;
+    }
     return baseSpeciesName;
   }
 
