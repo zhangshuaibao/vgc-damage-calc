@@ -670,7 +670,10 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
                     type="button"
                     className="team-popular-slot"
                     title={`#${usage.rank} ${usage.pokemon} ${usage.usage.toFixed(1)}%`}
-                    onClick={() => setPokemonName(usage.pokemon)}
+                    onClick={() => {
+                      const species = ShowdownDataService.getPokemonSpecies(usage.pokemon);
+                      if (species) setPokemonName(species);
+                    }}
                   >
                     {imgUrl && (
                       <SmartImage
