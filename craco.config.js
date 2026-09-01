@@ -87,6 +87,11 @@ module.exports = {
           );
         }
       }
+      // 移除 ForkTsCheckerWebpackPlugin，节省内存（部署环境不需要类型检查）
+      webpackConfig.plugins = webpackConfig.plugins.filter(
+        (plugin) => plugin.constructor.name !== "ForkTsCheckerWebpackPlugin"
+      );
+
       return webpackConfig;
     },
   },
