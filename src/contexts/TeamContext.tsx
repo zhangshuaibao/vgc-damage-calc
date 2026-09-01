@@ -38,6 +38,7 @@ export interface SavedTeam {
   pasteTexts: string[];
   pokemons: SavedTeamPreviewPokemon[];
   createdAt: number;
+  pinned?: boolean;
 }
 
 interface TeamState {
@@ -52,6 +53,7 @@ interface TeamState {
   saveTeamToStorage: (name: string) => Promise<boolean>;
   loadSavedTeam: (teamId: string) => Promise<boolean>;
   deleteSavedTeam: (teamId: string) => Promise<boolean>;
+  togglePinTeam: (teamId: string) => Promise<boolean>;
   clearTeam: () => Promise<boolean>;
   importTeamFromText: (text: string) => Promise<boolean>;
   exportTeamToClipboard: () => Promise<boolean>;
@@ -141,7 +143,10 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
       if (globalRaw !== null) {
         return normalizeSavedTeams(JSON.parse(globalRaw) as unknown)
           .slice(0, MAX_SAVED_TEAMS)
-          .sort((a, b) => b.createdAt - a.createdAt);
+          .sort((a, b) => {
+            if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+            return b.createdAt - a.createdAt;
+          });
       }
     } catch {
       return [];
@@ -162,7 +167,10 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
       uniqueTeams.push(team);
     }
     return uniqueTeams
-      .sort((a, b) => b.createdAt - a.createdAt)
+      .sort((a, b) => {
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+        return b.createdAt - a.createdAt;
+      })
       .slice(0, MAX_SAVED_TEAMS);
   }, []);
 
@@ -700,6 +708,14 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
     return ok;
   };
 
+  const togglePinTeam = async (teamId: string): Promise<boolean> => {
+    const existingTeams = readSavedTeamsFromStorage();
+    const nextTeams = existingTeams.map((team) =>
+      team.id === teamId ? { ...team, pinned: !team.pinned } : team
+    );
+    return writeSavedTeamsToStorage(nextTeams);
+  };
+
   const clearTeam = async (): Promise<boolean> => {
     return await runExclusive(async () => {
       lastImportedPasteTextRef.current = undefined;
@@ -845,6 +861,7 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
     saveTeamToStorage,
     loadSavedTeam,
     deleteSavedTeam,
+    togglePinTeam,
     clearTeam,
     importTeamFromText,
     exportTeamToClipboard,

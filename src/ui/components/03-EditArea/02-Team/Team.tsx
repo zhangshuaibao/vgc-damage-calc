@@ -13,6 +13,7 @@ import {
   FiSave,
   FiFolder,
   FiX,
+  FiBookmark,
 } from "react-icons/fi";
 import { createPortal } from "react-dom";
 import { confirmable, ContextAwareConfirmation } from "react-confirm";
@@ -47,6 +48,7 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
     saveTeamToStorage,
     loadSavedTeam,
     deleteSavedTeam,
+    togglePinTeam,
     clearTeam,
     exportTeamToClipboard,
     importTeamFromClipboard,
@@ -182,6 +184,14 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
       }
     },
     [confirm, deleteSavedTeam, savedTeams, t],
+  );
+
+  const handleTogglePinTeam = React.useCallback(
+    async (event: React.MouseEvent, teamId: string) => {
+      event.stopPropagation();
+      await togglePinTeam(teamId);
+    },
+    [togglePinTeam],
   );
 
   React.useEffect(() => {
@@ -978,6 +988,17 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
                               )}
                             </span>
                           ))}
+                        </span>
+                        <span
+                          role="button"
+                          tabIndex={-1}
+                          className={`team-saved-item__pin${team.pinned ? " team-saved-item__pin--active" : ""}`}
+                          title={team.pinned ? "取消置顶" : "置顶"}
+                          onClick={(event) => {
+                            void handleTogglePinTeam(event, team.id);
+                          }}
+                        >
+                          <FiBookmark />
                         </span>
                         <span
                           role="button"

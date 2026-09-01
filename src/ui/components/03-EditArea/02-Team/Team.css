@@ -416,10 +416,10 @@
 .team-saved-item {
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 26px;
+  grid-template-columns: minmax(0, 1fr) 26px 26px;
   grid-template-areas:
-    "name delete"
-    "pokemons delete";
+    "name pin delete"
+    "pokemons pin delete";
   align-items: center;
   gap: 5px 8px;
   padding: 7px 8px;
@@ -488,6 +488,27 @@
   height: 15px;
   object-fit: contain;
   filter: drop-shadow(0 1px 2px var(--shadow-light));
+}
+
+.team-saved-item__pin {
+  grid-area: pin;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.team-saved-item__pin:hover {
+  background: var(--widget-selected-background-color);
+  color: var(--accent-color);
+}
+
+.team-saved-item__pin--active {
+  color: var(--accent-color);
 }
 
 .team-saved-item__delete {
