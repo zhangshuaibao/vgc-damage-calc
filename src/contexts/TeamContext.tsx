@@ -806,7 +806,7 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
     const text =
       navigator.clipboard && navigator.clipboard.readText
         ? await navigator.clipboard.readText()
-        : "";
+        : (prompt("请粘贴队伍文本：") ?? "");
     if (!text) return false;
     return await runExclusive(async () => {
       try {

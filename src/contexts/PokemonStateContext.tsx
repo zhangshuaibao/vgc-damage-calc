@@ -881,7 +881,7 @@ const usePokemonStateLogic = (pokemonId: string): PokemonStateContextType => {
       const text =
         navigator.clipboard && navigator.clipboard.readText
           ? await navigator.clipboard.readText()
-          : "";
+          : (prompt("请粘贴宝可梦文本：") ?? "");
       if (!text) return false;
       setDisableAutoSelect(true);
       return await importPokemonFromPasteText(text);
