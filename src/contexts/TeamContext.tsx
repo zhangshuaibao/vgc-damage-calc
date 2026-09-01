@@ -54,6 +54,7 @@ interface TeamState {
   loadSavedTeam: (teamId: string) => Promise<boolean>;
   deleteSavedTeam: (teamId: string) => Promise<boolean>;
   togglePinTeam: (teamId: string) => Promise<boolean>;
+  setPokemonName: (name: unknown) => void;
   clearTeam: () => Promise<boolean>;
   importTeamFromText: (text: string) => Promise<boolean>;
   exportTeamToClipboard: () => Promise<boolean>;
@@ -862,6 +863,7 @@ const useTeamLogic = (side: "attacker" | "defender"): TeamState => {
     loadSavedTeam,
     deleteSavedTeam,
     togglePinTeam,
+    setPokemonName,
     clearTeam,
     importTeamFromText,
     exportTeamToClipboard,

@@ -14,7 +14,10 @@ import {
   FiFolder,
   FiX,
   FiBookmark,
+  FiTrendingUp,
 } from "react-icons/fi";
+import { usePokemonUsage } from "../../../../contexts/PokemonUsageContext";
+import { ShowdownDataService } from "../../../../services/showdown.utils/showdown.data.service";
 import { createPortal } from "react-dom";
 import { confirmable, ContextAwareConfirmation } from "react-confirm";
 import ConfirmDialog, {
@@ -49,14 +52,17 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
     loadSavedTeam,
     deleteSavedTeam,
     togglePinTeam,
+    setPokemonName,
     clearTeam,
     exportTeamToClipboard,
     importTeamFromClipboard,
     hasUnsavedCurrentPokemonChanges,
   } = useTeamState(isAttacker);
   const { t } = useTranslation("app");
+  const { pokemonUsageList } = usePokemonUsage();
   const [toastText, setToastText] = React.useState<string | null>(null);
   const [savedTeamsOpen, setSavedTeamsOpen] = React.useState(false);
+  const [showPopular, setShowPopular] = React.useState(false);
   const [draggingIndex, setDraggingIndex] = React.useState<number | null>(null);
   const [dragOverGapIndex, setDragOverGapIndex] = React.useState<number | null>(
     null
@@ -654,7 +660,31 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
         className={`p-team-area p-team-${isAttacker ? "attacker" : "defender"}`}
       >
         <div className="team-grid">
-          <div className="team-slots-row">
+          <div className={`team-slots-row${(!isAttacker && showPopular) ? " team-slots-row--popular" : ""}`}>
+            {(!isAttacker && showPopular) ? (
+              pokemonUsageList.slice(0, 20).map((usage) => {
+                const imgUrl = ShowdownDataService.getPokemonImgUrl(usage.pokemon, true);
+                return (
+                  <button
+                    key={usage.pokemon}
+                    type="button"
+                    className="team-popular-slot"
+                    title={`#${usage.rank} ${usage.pokemon} ${usage.usage.toFixed(1)}%`}
+                    onClick={() => setPokemonName(usage.pokemon)}
+                  >
+                    {imgUrl && (
+                      <SmartImage
+                        className="team-popular-slot__img"
+                        src={imgUrl}
+                        alt={usage.pokemon}
+                        loading="lazy"
+                      />
+                    )}
+                  </button>
+                );
+              })
+            ) : (
+              <>
             {renderDropGap(0)}
             {slots
               .map((s, i) => ({ slot: s, index: i }))
@@ -891,6 +921,8 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
                 <FiPlus className="team-add-icon" />
               </div>
             )}
+              </>
+            )}
           </div>
           <div className="team-actions-col">
             <button
@@ -1022,6 +1054,17 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
                 </div>
               )}
             </div>
+            {!isAttacker && (
+              <button
+                type="button"
+                className={`team-action-button${showPopular ? " team-popular-toggle--active" : ""}`}
+                title={showPopular ? "显示我的队伍" : "热门宝可梦"}
+                onClick={() => setShowPopular((v) => !v)}
+                tabIndex={tabBase + 26}
+              >
+                <FiTrendingUp />
+              </button>
+            )}
             <button
               type="button"
               className="team-action-button team-clear"
