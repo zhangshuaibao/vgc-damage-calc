@@ -64,7 +64,7 @@ const DefenderTeamContext = createContext<TeamState | undefined>(undefined);
 const SAVED_TEAM_STORAGE_VERSION = 1;
 const SAVED_TEAM_STORAGE_KEY = `vg-calc.savedTeams.v${SAVED_TEAM_STORAGE_VERSION}`;
 const SAVED_TEAMS_CHANGED_EVENT = "vgCalcSavedTeamsChanged";
-const MAX_SAVED_TEAMS = 10;
+const MAX_SAVED_TEAMS = 100;
 const MAX_SAVED_TEAM_NAME_LENGTH = 100;
 
 const getDeprecatedSavedTeamStorageKey = (side: "attacker" | "defender"): string =>

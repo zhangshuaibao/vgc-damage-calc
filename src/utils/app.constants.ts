@@ -31,11 +31,7 @@ class AppConstants {
   }
 
   static get BaseApiURL(): string {
-    if (process.env.NODE_ENV !== "development") {
-      return `${this._currentHost}/api`;
-    } else {
-      return "http://localhost:8888/api";
-    }
+    return `${this._currentHost}/api`;
   }
 
   /**

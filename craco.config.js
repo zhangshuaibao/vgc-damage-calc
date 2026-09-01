@@ -1,6 +1,22 @@
 const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = {
+  devServer: {
+    proxy: [
+      {
+        context: ["/images"],
+        target: "https://pokestats.top",
+        changeOrigin: true,
+        secure: true,
+      },
+      {
+        context: ["/api"],
+        target: "https://pokestats.top",
+        changeOrigin: true,
+        secure: true,
+      },
+    ],
+  },
   webpack: {
     configure: (webpackConfig, { env, paths }) => {
       if (env === "production") {
