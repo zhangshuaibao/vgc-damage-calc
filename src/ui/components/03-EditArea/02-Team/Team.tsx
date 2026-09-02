@@ -63,6 +63,7 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
   const [toastText, setToastText] = React.useState<string | null>(null);
   const [savedTeamsOpen, setSavedTeamsOpen] = React.useState(false);
   const [showPopular, setShowPopular] = React.useState(false);
+  const [popularCount, setPopularCount] = React.useState(20);
   const [draggingIndex, setDraggingIndex] = React.useState<number | null>(null);
   const [dragOverGapIndex, setDragOverGapIndex] = React.useState<number | null>(
     null
@@ -662,7 +663,20 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
         <div className="team-grid">
           <div className={`team-slots-row${(!isAttacker && showPopular) ? " team-slots-row--popular" : ""}`}>
             {(!isAttacker && showPopular) ? (
-              pokemonUsageList.slice(0, 20).map((usage) => {
+              <>
+                <div className="team-popular-count-bar">
+                  {[20, 30, 40, 50].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      className={`team-popular-count-btn${popularCount === n ? " team-popular-count-btn--active" : ""}`}
+                      onClick={() => setPopularCount(n)}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              {pokemonUsageList.slice(0, popularCount).map((usage) => {
                 const imgUrl = ShowdownDataService.getPokemonImgUrl(usage.pokemon, true);
                 return (
                   <button
@@ -685,7 +699,8 @@ const Team: React.FC<EditAreaProps> = ({ isAttacker }) => {
                     )}
                   </button>
                 );
-              })
+              })}
+              </>
             ) : (
               <>
             {renderDropGap(0)}
